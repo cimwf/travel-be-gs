@@ -1,0 +1,79 @@
+.dashboard {
+  padding: 24px;
+}
+
+.statCards {
+  margin-bottom: 24px;
+}
+
+.statCard {
+  :global {
+    .ant-card-body {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px;
+    }
+  }
+}
+
+.statIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.statInfo {
+  flex: 1;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 4px;
+}
+
+.statChange {
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chartCard {
+  margin-bottom: 24px;
+}
+
+.rankCard {
+  margin-bottom: 24px;
+}
+
+.progressList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.progressItem {
+  .progressLabel {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+  }
+}

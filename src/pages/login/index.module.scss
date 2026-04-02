@@ -1,0 +1,255 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  position: relative;
+  overflow: hidden;
+}
+
+.bgDecoration1 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  top: -150px;
+  right: -100px;
+}
+
+.bgDecoration2 {
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  bottom: -80px;
+  left: -80px;
+}
+
+.content {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+.brandSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  color: white;
+  max-width: 480px;
+}
+
+.brandLogo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.logoIcon {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+}
+
+.logoText {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.brandDesc {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.featureIcon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.featureContent {
+  h4 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  p {
+    font-size: 0.8125rem;
+    opacity: 0.8;
+  }
+}
+
+.loginSection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loginCard {
+  background: white;
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.cardHeader {
+  padding: 40px 32px 0;
+  text-align: center;
+
+  h2 {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+  }
+}
+
+.loginForm {
+  padding: 28px 32px;
+
+  :global {
+    .ant-input-affix-wrapper {
+      padding: 10px 14px;
+    }
+
+    .ant-input {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.eyeIcon {
+  cursor: pointer;
+  color: var(--gray-400);
+
+  &:hover {
+    color: var(--gray-600);
+  }
+}
+
+.formOptions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  :global {
+    .ant-checkbox-wrapper {
+      font-size: 0.8125rem;
+      color: var(--gray-600);
+    }
+  }
+}
+
+.forgotLink {
+  font-size: 0.8125rem;
+  color: var(--primary-600);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--primary-700);
+  }
+}
+
+.submitBtn {
+  height: 44px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 0 32px 24px;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gray-200);
+  }
+
+  span {
+    padding: 0 12px;
+    font-size: 0.75rem;
+    color: var(--gray-400);
+  }
+}
+
+.otherMethods {
+  display: flex;
+  gap: 12px;
+  padding: 0 32px 24px;
+
+  button {
+    flex: 1;
+  }
+}
+
+.cardFooter {
+  padding: 16px 32px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-100);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+
+  a {
+    color: var(--primary-600);
+    margin-left: 4px;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--primary-700);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .brandSection {
+    display: none;
+  }
+
+  .loginSection {
+    padding: 20px;
+  }
+}

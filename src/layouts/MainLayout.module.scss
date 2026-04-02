@@ -1,0 +1,150 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--gray-900);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+
+  &.collapsed {
+    width: 80px;
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--gray-700);
+}
+
+.logoIcon {
+  width: 32px;
+  height: 32px;
+  background: var(--primary-500);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.2s ease;
+}
+
+.header {
+  height: var(--header-height);
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 99;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.collapseBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  color: var(--gray-600);
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--gray-100);
+    color: var(--primary-600);
+  }
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--gray-100);
+  }
+}
+
+.userName {
+  font-size: 0.875rem;
+  color: var(--gray-700);
+}
+
+.content {
+  flex: 1;
+  background: var(--gray-50);
+  overflow-y: auto;
+}
+
+// 侧边栏收起时的主内容区
+.sidebar.collapsed + .main {
+  margin-left: 80px;
+}
+
+// 覆盖 Ant Design Menu 样式
+.sidebar {
+  :global {
+    .ant-menu {
+      background: transparent;
+      border: none;
+    }
+
+    .ant-menu-item {
+      margin: 4px 8px;
+      border-radius: var(--radius-md);
+
+      &::after {
+        display: none;
+      }
+    }
+
+    .ant-menu-item-selected {
+      background: var(--primary-600) !important;
+    }
+  }
+}
