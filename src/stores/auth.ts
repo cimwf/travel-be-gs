@@ -30,10 +30,14 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       login: async (username: string, password: string) => {
-        // 模拟登录验证
-        if (username === 'admin' && password === 'admin123') {
+        // 开发阶段：任意非空用户名密码均可登录
+        if (username && password) {
           set({
-            user: mockAdmin,
+            user: {
+              ...mockAdmin,
+              username,
+              nickname: username,
+            },
             token: 'mock-token-' + Date.now(),
             isAuthenticated: true,
           });

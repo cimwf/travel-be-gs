@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Checkbox, message } from 'antd';
 import { UserOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import styles from './index.module.scss';
 
@@ -11,10 +11,15 @@ interface LoginForm {
   remember: boolean;
 }
 
+interface LocationState {
+  from?: { pathname: string };
+}
+
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuthStore();
 
   const handleSubmit = async (values: LoginForm) => {
@@ -25,9 +30,10 @@ const Login: React.FC = () => {
 
       if (success) {
         message.success('登录成功');
-        navigate('/dashboard');
+        const from = (location.state as LocationState)?.from?.pathname || '/dashboard';
+        navigate(from, { replace: true });
       } else {
-        message.error('用户名或密码错误');
+        message.error('请输入用户名和密码');
       }
     } catch {
       message.error('登录失败，请重试');
