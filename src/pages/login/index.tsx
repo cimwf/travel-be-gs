@@ -178,23 +178,14 @@ const Login: React.FC = () => {
               </Form.Item>
             </Form>
 
-            <div className={styles.divider}>
+            {/* <div className={styles.divider}>
               <span>其他方式</span>
-            </div>
-
-            <div className={styles.otherMethods}>
-              {/* ===== 注册入口：注册完成后注释掉这段代码 ===== */}
-              <Button block onClick={() => setRegisterVisible(true)}>
-                📝 注册账号
-              </Button>
-              {/* ===== 注册完成后注释到上面 ===== */}
-              <Button block>🔐 企业微信</Button>
             </div>
 
             <div className={styles.cardFooter}>
               <span>还没有账号？</span>
               <a onClick={() => setRegisterVisible(true)}>立即注册</a>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import md5 from 'md5';
-import { db } from '@/utils/cloudbase';
+import { getDb, initCloudBase } from '@/utils/cloudbase';
 import type { AdminUser } from '@/types';
 
 interface AuthState {
@@ -38,10 +38,18 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true });
 
         try {
+          // 初始化云开发（匿名登录）
+          const inited = await initCloudBase();
+          if (!inited) {
+            set({ loading: false });
+            return { success: false, message: '云开发初始化失败' };
+          }
+
           // 密码 MD5 加密
           const passwordHash = md5(password);
 
           // 从云数据库查询用户
+          const db = getDb();
           const result = await db
             .collection('admin_users')
             .where({
@@ -86,6 +94,15 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true });
 
         try {
+          // 初始化云开发（匿名登录）
+          const inited = await initCloudBase();
+          if (!inited) {
+            set({ loading: false });
+            return { success: false, message: '云开发初始化失败' };
+          }
+
+          const db = getDb();
+
           // 检查用户名是否已存在
           const checkResult = await db
             .collection('admin_users')
