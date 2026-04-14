@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
+    "@cloudbase/js-sdk": "^2.27.3",
     "antd": "^6.3.5",
     "axios": "^1.14.0",
     "mockjs": "^1.1.0",
