@@ -6,21 +6,26 @@ interface AuthState {
   user: AdminUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
 
-// 模拟用户数据
-const mockAdmin: AdminUser = {
+// 白名单账号配置
+const ADMIN_WHITELIST = [
+  { username: 'admin', password: 'gs789456', nickname: '管理员', role: 'admin' as const },
+];
+
+// 用户数据模板
+const createAdminUser = (username: string, nickname: string, role: 'admin' | 'operator' | 'viewer'): AdminUser => ({
   id: '1',
-  username: 'admin',
-  nickname: '陈经理',
+  username,
+  nickname,
   avatar: '',
-  role: 'admin',
+  role,
   permissions: ['*'],
   createdAt: '2026-01-01',
-  lastLoginAt: '2026-04-02',
-};
+  lastLoginAt: new Date().toISOString(),
+});
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -30,20 +35,21 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       login: async (username: string, password: string) => {
-        // 开发阶段：任意非空用户名密码均可登录
-        if (username && password) {
+        // 白名单验证
+        const admin = ADMIN_WHITELIST.find(
+          (item) => item.username === username && item.password === password
+        );
+
+        if (admin) {
           set({
-            user: {
-              ...mockAdmin,
-              username,
-              nickname: username,
-            },
-            token: 'mock-token-' + Date.now(),
+            user: createAdminUser(admin.username, admin.nickname, admin.role),
+            token: 'token-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11),
             isAuthenticated: true,
           });
-          return true;
+          return { success: true, message: '登录成功' };
         }
-        return false;
+
+        return { success: false, message: '用户名或密码错误' };
       },
 
       logout: () => {

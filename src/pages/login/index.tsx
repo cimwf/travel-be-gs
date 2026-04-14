@@ -26,14 +26,14 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const success = await login(values.username, values.password);
+      const result = await login(values.username, values.password);
 
-      if (success) {
-        message.success('登录成功');
+      if (result.success) {
+        message.success(result.message);
         const from = (location.state as LocationState)?.from?.pathname || '/dashboard';
         navigate(from, { replace: true });
       } else {
-        message.error('请输入用户名和密码');
+        message.error(result.message);
       }
     } catch {
       message.error('登录失败，请重试');
