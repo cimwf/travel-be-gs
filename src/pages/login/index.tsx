@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Checkbox, message } from 'antd';
+import { Form, Input, Button, Checkbox, message, Modal } from 'antd';
 import { UserOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
@@ -11,6 +11,13 @@ interface LoginForm {
   remember: boolean;
 }
 
+interface RegisterForm {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  nickname: string;
+}
+
 interface LocationState {
   from?: { pathname: string };
 }
@@ -18,9 +25,12 @@ interface LocationState {
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [registerVisible, setRegisterVisible] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuthStore();
+  const { login, register } = useAuthStore();
+  const [registerForm] = Form.useForm();
 
   const handleSubmit = async (values: LoginForm) => {
     setLoading(true);
@@ -39,6 +49,31 @@ const Login: React.FC = () => {
       message.error('登录失败，请重试');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRegister = async (values: RegisterForm) => {
+    if (values.password !== values.confirmPassword) {
+      message.error('两次密码不一致');
+      return;
+    }
+
+    setRegisterLoading(true);
+
+    try {
+      const result = await register(values.username, values.password, values.nickname);
+
+      if (result.success) {
+        message.success(result.message);
+        setRegisterVisible(false);
+        registerForm.resetFields();
+      } else {
+        message.error(result.message);
+      }
+    } catch {
+      message.error('注册失败，请重试');
+    } finally {
+      setRegisterLoading(false);
     }
   };
 
@@ -148,17 +183,90 @@ const Login: React.FC = () => {
             </div>
 
             <div className={styles.otherMethods}>
-              <Button block>📱 短信验证</Button>
+              {/* ===== 注册入口：注册完成后注释掉这段代码 ===== */}
+              <Button block onClick={() => setRegisterVisible(true)}>
+                📝 注册账号
+              </Button>
+              {/* ===== 注册完成后注释到上面 ===== */}
               <Button block>🔐 企业微信</Button>
             </div>
 
             <div className={styles.cardFooter}>
               <span>还没有账号？</span>
-              <a>联系管理员开通</a>
+              <a onClick={() => setRegisterVisible(true)}>立即注册</a>
             </div>
           </div>
         </div>
       </div>
+
+      {/* 注册弹窗 */}
+      <Modal
+        title="注册管理员账号"
+        open={registerVisible}
+        onCancel={() => setRegisterVisible(false)}
+        footer={null}
+        width={400}
+      >
+        <Form
+          form={registerForm}
+          layout="vertical"
+          onFinish={handleRegister}
+          size="large"
+        >
+          <Form.Item
+            name="username"
+            label="用户名"
+            rules={[
+              { required: true, message: '请输入用户名' },
+              { min: 3, message: '用户名至少3个字符' },
+            ]}
+          >
+            <Input placeholder="请输入用户名" />
+          </Form.Item>
+
+          <Form.Item
+            name="nickname"
+            label="昵称"
+          >
+            <Input placeholder="请输入昵称（可选）" />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="密码"
+            rules={[
+              { required: true, message: '请输入密码' },
+              { min: 6, message: '密码至少6个字符' },
+            ]}
+          >
+            <Input.Password placeholder="请输入密码" />
+          </Form.Item>
+
+          <Form.Item
+            name="confirmPassword"
+            label="确认密码"
+            rules={[
+              { required: true, message: '请确认密码' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('两次密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="请再次输入密码" />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={registerLoading} block>
+              注 册
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import md5 from 'md5';
 import { db } from '@/utils/cloudbase';
 import type { AdminUser } from '@/types';
 
@@ -9,8 +10,8 @@ interface AuthState {
   isAuthenticated: boolean;
   loading: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; message: string }>;
+  register: (username: string, password: string, nickname: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
-  checkAuth: () => void;
 }
 
 // 创建用户数据
@@ -37,12 +38,15 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true });
 
         try {
+          // 密码 MD5 加密
+          const passwordHash = md5(password);
+
           // 从云数据库查询用户
           const result = await db
             .collection('admin_users')
             .where({
               username: username,
-              password: password,
+              password: passwordHash,
             })
             .get();
 
@@ -78,20 +82,52 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      register: async (username: string, password: string, nickname: string) => {
+        set({ loading: true });
+
+        try {
+          // 检查用户名是否已存在
+          const checkResult = await db
+            .collection('admin_users')
+            .where({
+              username: username,
+            })
+            .get();
+
+          if (checkResult.data && checkResult.data.length > 0) {
+            set({ loading: false });
+            return { success: false, message: '用户名已存在' };
+          }
+
+          // 密码 MD5 加密
+          const passwordHash = md5(password);
+
+          // 创建用户
+          await db.collection('admin_users').add({
+            username,
+            password: passwordHash,
+            nickname: nickname || username,
+            role: 'admin',
+            permissions: ['*'],
+            createdAt: Date.now(),
+            lastLoginAt: Date.now(),
+          });
+
+          set({ loading: false });
+          return { success: true, message: '注册成功，请登录' };
+        } catch (error) {
+          console.error('Register error:', error);
+          set({ loading: false });
+          return { success: false, message: '注册失败，请检查网络连接' };
+        }
+      },
+
       logout: () => {
         set({
           user: null,
           token: null,
           isAuthenticated: false,
         });
-      },
-
-      checkAuth: () => {
-        // 检查本地存储的登录状态
-        const state = useAuthStore.getState();
-        if (state.token && state.user) {
-          set({ isAuthenticated: true });
-        }
       },
     }),
     {
