@@ -1,36 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Input, Select, Tag, Space, Popconfirm, message } from 'antd';
+import { Table, Card, Button, Input, Select, Tag, Space, Popconfirm, message, Image } from 'antd';
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAttractionsStore } from '@/stores/attractions';
+import { categoryOptions, locationOptions } from '@/mock/attractions';
 import type { Attraction } from '@/types';
 import styles from './index.module.scss';
 
-const statusMap: Record<string, { color: string; text: string }> = {
-  online: { color: 'success', text: '已上线' },
-  pending: { color: 'warning', text: '待审核' },
-  offline: { color: 'error', text: '已下线' },
-};
-
-const difficultyMap: Record<string, { color: string; text: string }> = {
-  easy: { color: 'success', text: '简单' },
-  medium: { color: 'warning', text: '中等' },
-  hard: { color: 'error', text: '困难' },
+const difficultyColorMap: Record<string, string> = {
+  '简单': 'success',
+  '中等': 'warning',
+  '困难': 'error',
 };
 
 const AttractionsList: React.FC = () => {
   const navigate = useNavigate();
-  const { attractions, total, loading, fetchList, delete: deleteAttraction } = useAttractionsStore();
+  const { fetchList, delete: deleteAttraction } = useAttractionsStore();
 
+  const [data, setData] = useState<Attraction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [keyword, setKeyword] = useState('');
   const [category, setCategory] = useState('all');
-  const [status, setStatus] = useState('all');
+  const [location, setLocation] = useState('all');
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const result = await fetchList({ page, pageSize, keyword, category, location });
+      setData(result.list);
+      setTotal(result.total);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchList({ page, pageSize, keyword, category, status });
-  }, [page, pageSize, keyword, category, status]);
+    loadData();
+  }, [page, pageSize, keyword, category, location]);
 
   const handleSearch = (value: string) => {
     setKeyword(value);
@@ -41,54 +50,75 @@ const AttractionsList: React.FC = () => {
     const success = await deleteAttraction(id);
     if (success) {
       message.success('删除成功');
-      fetchList({ page, pageSize, keyword, category, status });
+      loadData();
     }
   };
 
   const columns = [
     {
+      title: '封面',
+      dataIndex: 'coverImage',
+      key: 'coverImage',
+      width: 100,
+      render: (url: string) => (
+        <Image
+          src={url}
+          width={80}
+          height={60}
+          style={{ objectFit: 'cover', borderRadius: 4 }}
+          fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        />
+      ),
+    },
+    {
       title: '景点名称',
       dataIndex: 'name',
       key: 'name',
-      width: 200,
+      width: 150,
     },
     {
       title: '分类',
       dataIndex: 'category',
       key: 'category',
-      width: 100,
+      width: 80,
     },
     {
       title: '区域',
-      dataIndex: 'district',
-      key: 'district',
+      dataIndex: 'location',
+      key: 'location',
       width: 100,
     },
     {
-      title: '票价',
-      key: 'price',
-      width: 100,
-      render: (_: unknown, record: Attraction) => {
-        const adultTicket = record.tickets.find((t) => t.type === '成人票');
-        return adultTicket ? `¥${adultTicket.price}` : '-';
-      },
+      title: '距离',
+      dataIndex: 'distance',
+      key: 'distance',
+      width: 80,
+      render: (v: number) => `${v}km`,
     },
     {
-      title: '浏览量',
-      dataIndex: 'viewCount',
-      key: 'viewCount',
-      width: 100,
-      render: (value: number) => value.toLocaleString(),
+      title: '难度',
+      dataIndex: 'difficulty',
+      key: 'difficulty',
+      width: 80,
+      render: (v: string) => (
+        <Tag color={difficultyColorMap[v] || 'default'}>{v}</Tag>
+      ),
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
+      title: '想去/访问',
+      key: 'counts',
+      width: 120,
+      render: (_: unknown, record: Attraction) => (
+        <span>
+          {record.wantCount}/{record.visitCount}
+        </span>
+      ),
+    },
+    {
+      title: '最佳季节',
+      dataIndex: 'bestSeason',
+      key: 'bestSeason',
       width: 100,
-      render: (value: string) => {
-        const { color, text } = statusMap[value] || { color: 'default', text: value };
-        return <Tag color={color}>{text}</Tag>;
-      },
     },
     {
       title: '操作',
@@ -100,13 +130,13 @@ const AttractionsList: React.FC = () => {
             type="link"
             size="small"
             icon={<EditOutlined />}
-            onClick={() => navigate(`/attractions/edit/${record.id}`)}
+            onClick={() => navigate(`/attractions/edit/${record._id}`)}
           >
             编辑
           </Button>
           <Popconfirm
             title="确定要删除此景点吗？"
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => handleDelete(record._id!)}
             okText="确定"
             cancelText="取消"
           >
@@ -138,24 +168,19 @@ const AttractionsList: React.FC = () => {
             <Select
               value={category}
               onChange={setCategory}
-              style={{ width: 140 }}
+              style={{ width: 120 }}
               options={[
                 { value: 'all', label: '全部分类' },
-                { value: '历史古迹', label: '历史古迹' },
-                { value: '自然风光', label: '自然风光' },
-                { value: '主题公园', label: '主题公园' },
-                { value: '博物馆', label: '博物馆' },
+                ...categoryOptions,
               ]}
             />
             <Select
-              value={status}
-              onChange={setStatus}
+              value={location}
+              onChange={setLocation}
               style={{ width: 120 }}
               options={[
-                { value: 'all', label: '全部状态' },
-                { value: 'online', label: '已上线' },
-                { value: 'pending', label: '待审核' },
-                { value: 'offline', label: '已下线' },
+                { value: 'all', label: '全部区域' },
+                ...locationOptions.map((l) => ({ value: l, label: l })),
               ]}
             />
           </div>
@@ -170,8 +195,8 @@ const AttractionsList: React.FC = () => {
 
         <Table
           columns={columns}
-          dataSource={attractions}
-          rowKey="id"
+          dataSource={data}
+          rowKey="_id"
           loading={loading}
           pagination={{
             current: page,
@@ -179,10 +204,10 @@ const AttractionsList: React.FC = () => {
             total,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => {
-              setPage(page);
-              setPageSize(pageSize);
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => {
+              setPage(p);
+              setPageSize(ps);
             },
           }}
         />

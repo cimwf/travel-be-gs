@@ -30,81 +30,28 @@
 
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 
-  .fullWidth {
-    grid-column: span 2;
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
   }
 }
 
-.formGrid2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.formGrid3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.subTitle {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--gray-700);
-  margin: 20px 0 12px;
-}
-
-.tickets {
+.imageList {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
-.ticketRow {
+.imageItem {
   display: flex;
   gap: 12px;
   align-items: center;
-}
-
-.ratingInfo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: var(--gray-50);
-  border-radius: var(--radius-md);
-}
-
-.ratingLabel {
-  font-size: 0.75rem;
-  color: var(--gray-500);
-}
-
-.ratingValue {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--gray-900);
-}
-
-.ratingCount {
-  font-size: 0.75rem;
-  color: var(--gray-500);
-}
-
-.ratingNote {
-  font-size: 0.75rem;
-  color: var(--gray-400);
-  margin-left: auto;
-}
-
-.uploadTip {
-  font-size: 0.75rem;
-  color: var(--gray-500);
-  margin-top: 8px;
 }
 
 .tags {
@@ -116,11 +63,11 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
+  padding: 6px 14px;
   background: var(--gray-100);
   color: var(--gray-600);
   border-radius: 9999px;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.15s;
 
@@ -134,36 +81,14 @@
   }
 }
 
-.operationSettings {
+.tipsList {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.sortWeight {
+.tipItem {
   display: flex;
+  gap: 12px;
   align-items: center;
-  gap: 8px;
-
-  span {
-    font-size: 0.875rem;
-    color: var(--gray-700);
-  }
-}
-
-.sortTip {
-  font-size: 0.75rem;
-  color: var(--gray-500);
-}
-
-@media (max-width: 768px) {
-  .formGrid,
-  .formGrid2,
-  .formGrid3 {
-    grid-template-columns: 1fr;
-
-    .fullWidth {
-      grid-column: span 1;
-    }
-  }
 }

@@ -5,90 +5,65 @@ import {
   Input,
   Select,
   InputNumber,
-  Switch,
   Button,
-  Upload,
   message,
   Space,
   Spin,
+  Image,
 } from 'antd';
-import { PlusOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { PlusOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAttractionsStore } from '@/stores/attractions';
-import type { Attraction, Ticket } from '@/types';
+import { categoryOptions, difficultyOptions, locationOptions, tagOptions } from '@/mock/attractions';
+import type { Attraction } from '@/types';
 import styles from './edit.module.scss';
 
 const { TextArea } = Input;
 
-const districtOptions = [
-  '东城区', '西城区', '朝阳区', '海淀区', '丰台区', '石景山区',
-  '通州区', '顺义区', '昌平区', '大兴区', '房山区', '门头沟区',
-  '平谷区', '怀柔区', '密云区', '延庆区',
-];
-
-const categoryOptions = [
-  '历史古迹', '自然风光', '主题公园', '博物馆', '宗教寺庙', '园林景观', '现代地标', '其他',
-];
-
-const levelOptions = ['AAAAA', 'AAAA', 'AAA', 'AA', 'A', '无等级'];
-
-const daysOptions = ['0.5天', '1天', '1.5天', '2天', '2天以上'];
-
-const difficultyOptions = [
-  { value: 'easy', label: '简单' },
-  { value: 'medium', label: '中等' },
-  { value: 'hard', label: '困难' },
-];
-
-const statusOptions = [
-  { value: 'online', label: '已上线' },
-  { value: 'pending', label: '待审核' },
-  { value: 'offline', label: '已下线' },
-];
-
-const tagOptions = [
-  '亲子推荐', '情侣打卡', '摄影胜地', '文化体验', '户外运动', '避暑胜地', '赏花推荐', '红叶观赏',
-];
-
 const AttractionEdit: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { currentAttraction, loading, fetchById, create, update } = useAttractionsStore();
+  const { fetchById, create, update } = useAttractionsStore();
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [tickets, setTickets] = useState<Ticket[]>([
-    { type: '成人票', price: 0, description: '' },
-  ]);
   const [images, setImages] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [tipsList, setTipsList] = useState<string[]>(['']);
 
   const isEdit = !!id;
 
   useEffect(() => {
     if (id) {
-      fetchById(id);
+      loadData(id);
     }
   }, [id]);
 
-  useEffect(() => {
-    if (currentAttraction && isEdit) {
-      form.setFieldsValue(currentAttraction);
-      setTickets(currentAttraction.tickets || []);
-      setImages(currentAttraction.images || []);
-      setTags(currentAttraction.tags || []);
+  const loadData = async (attractionId: string) => {
+    setLoading(true);
+    try {
+      const data = await fetchById(attractionId);
+      if (data) {
+        form.setFieldsValue(data);
+        setImages(data.images || []);
+        setTags(data.tags || []);
+        setTipsList(data.tipsList?.length ? data.tipsList : ['']);
+      }
+    } finally {
+      setLoading(false);
     }
-  }, [currentAttraction]);
+  };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
 
-      const data = {
+      const data: Partial<Attraction> = {
         ...values,
-        tickets,
         images,
         tags,
+        tipsList: tipsList.filter((t) => t.trim()),
       };
 
       let success: boolean;
@@ -111,18 +86,18 @@ const AttractionEdit: React.FC = () => {
     }
   };
 
-  const handleAddTicket = () => {
-    setTickets([...tickets, { type: '', price: 0, description: '' }]);
+  const handleAddImage = () => {
+    setImages([...images, '']);
   };
 
-  const handleRemoveTicket = (index: number) => {
-    setTickets(tickets.filter((_, i) => i !== index));
+  const handleRemoveImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleTicketChange = (index: number, field: keyof Ticket, value: string | number) => {
-    const newTickets = [...tickets];
-    newTickets[index] = { ...newTickets[index], [field]: value };
-    setTickets(newTickets);
+  const handleImageChange = (index: number, value: string) => {
+    const newImages = [...images];
+    newImages[index] = value;
+    setImages(newImages);
   };
 
   const handleTagChange = (tag: string, checked: boolean) => {
@@ -131,6 +106,20 @@ const AttractionEdit: React.FC = () => {
     } else {
       setTags(tags.filter((t) => t !== tag));
     }
+  };
+
+  const handleAddTip = () => {
+    setTipsList([...tipsList, '']);
+  };
+
+  const handleRemoveTip = (index: number) => {
+    setTipsList(tipsList.filter((_, i) => i !== index));
+  };
+
+  const handleTipChange = (index: number, value: string) => {
+    const newTips = [...tipsList];
+    newTips[index] = value;
+    setTipsList(newTips);
   };
 
   if (loading && isEdit) {
@@ -158,7 +147,7 @@ const AttractionEdit: React.FC = () => {
 
       <Form form={form} layout="vertical">
         {/* 基础信息 */}
-        <Card title="📋 基础信息" className={styles.card}>
+        <Card title="基础信息" className={styles.card}>
           <div className={styles.formGrid}>
             <Form.Item
               name="name"
@@ -169,198 +158,161 @@ const AttractionEdit: React.FC = () => {
             </Form.Item>
 
             <Form.Item
-              name="district"
+              name="category"
+              label="分类"
+              rules={[{ required: true, message: '请选择分类' }]}
+            >
+              <Select placeholder="请选择分类" options={categoryOptions} />
+            </Form.Item>
+
+            <Form.Item
+              name="location"
               label="所在区域"
               rules={[{ required: true, message: '请选择所在区域' }]}
             >
-              <Select placeholder="请选择所在区域" options={districtOptions.map((d) => ({ value: d, label: d }))} />
+              <Select
+                placeholder="请选择所在区域"
+                options={locationOptions.map((l) => ({ value: l, label: l }))}
+              />
             </Form.Item>
 
             <Form.Item
-              name="category"
-              label="景点分类"
-              rules={[{ required: true, message: '请选择景点分类' }]}
+              name="distance"
+              label="距离（公里）"
+              rules={[{ required: true, message: '请输入距离' }]}
             >
-              <Select placeholder="请选择景点分类" options={categoryOptions.map((c) => ({ value: c, label: c }))} />
-            </Form.Item>
-
-            <Form.Item name="level" label="景点等级">
-              <Select placeholder="请选择景点等级" options={levelOptions.map((l) => ({ value: l, label: l }))} />
+              <InputNumber min={0} style={{ width: '100%' }} placeholder="距离市中心的公里数" />
             </Form.Item>
 
             <Form.Item
-              name="address"
-              label="详细地址"
-              rules={[{ required: true, message: '请输入详细地址' }]}
-              className={styles.fullWidth}
+              name="difficulty"
+              label="难度"
+              rules={[{ required: true, message: '请选择难度' }]}
             >
-              <Input placeholder="请输入详细地址" maxLength={100} />
+              <Select placeholder="请选择难度" options={difficultyOptions} />
             </Form.Item>
 
             <Form.Item
-              name="status"
-              label="状态"
-              rules={[{ required: true, message: '请选择状态' }]}
+              name="duration"
+              label="游玩时长"
+              rules={[{ required: true, message: '请输入游玩时长' }]}
             >
-              <Select options={statusOptions} />
+              <Input placeholder="如：1天、半天" />
             </Form.Item>
-          </div>
-        </Card>
 
-        {/* 游览信息 */}
-        <Card title="🎯 游览信息" className={styles.card}>
-          <div className={styles.formGrid3}>
+            <Form.Item
+              name="bestSeason"
+              label="最佳季节"
+              rules={[{ required: true, message: '请输入最佳季节' }]}
+            >
+              <Input placeholder="如：春夏秋、四季" />
+            </Form.Item>
+
+            <Form.Item
+              name="altitude"
+              label="海拔"
+            >
+              <Input placeholder="如：2303m（可选）" />
+            </Form.Item>
+
             <Form.Item
               name="openTime"
               label="开放时间"
               rules={[{ required: true, message: '请输入开放时间' }]}
             >
-              <Input placeholder="如：08:30-17:00" />
-            </Form.Item>
-
-            <Form.Item
-              name="suggestedDays"
-              label="建议游玩天数"
-              rules={[{ required: true, message: '请选择建议游玩天数' }]}
-            >
-              <Select options={daysOptions.map((d) => ({ value: d, label: d }))} />
-            </Form.Item>
-
-            <Form.Item
-              name="difficulty"
-              label="难易程度"
-              rules={[{ required: true, message: '请选择难易程度' }]}
-            >
-              <Select options={difficultyOptions} />
+              <Input placeholder="如：全天开放、8:00-17:00" />
             </Form.Item>
           </div>
 
-          <h4 className={styles.subTitle}>票价信息</h4>
-          <div className={styles.tickets}>
-            {tickets.map((ticket, index) => (
-              <div key={index} className={styles.ticketRow}>
+          <Form.Item
+            name="description"
+            label="景点描述"
+            rules={[{ required: true, message: '请输入景点描述' }]}
+          >
+            <TextArea rows={4} placeholder="请输入景点描述" maxLength={500} showCount />
+          </Form.Item>
+        </Card>
+
+        {/* 图片管理 */}
+        <Card title="图片管理" className={styles.card}>
+          <Form.Item
+            name="coverImage"
+            label="封面图"
+            rules={[{ required: true, message: '请输入封面图URL' }]}
+          >
+            <Input placeholder="封面图URL（建议400x300）" />
+          </Form.Item>
+
+          <Form.Item label="景点图片">
+            <div className={styles.imageList}>
+              {images.map((img, index) => (
+                <div key={index} className={styles.imageItem}>
+                  <Input
+                    value={img}
+                    onChange={(e) => handleImageChange(index, e.target.value)}
+                    placeholder="图片URL"
+                    style={{ flex: 1 }}
+                  />
+                  {img && (
+                    <Image
+                      src={img}
+                      width={60}
+                      height={60}
+                      style={{ objectFit: 'cover', borderRadius: 4 }}
+                      fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                    />
+                  )}
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleRemoveImage(index)}
+                  />
+                </div>
+              ))}
+              <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddImage}>
+                添加图片
+              </Button>
+            </div>
+          </Form.Item>
+        </Card>
+
+        {/* 标签选择 */}
+        <Card title="标签" className={styles.card}>
+          <div className={styles.tags}>
+            {tagOptions.map((tag) => (
+              <span
+                key={tag}
+                className={`${styles.tag} ${tags.includes(tag) ? styles.active : ''}`}
+                onClick={() => handleTagChange(tag, !tags.includes(tag))}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </Card>
+
+        {/* 温馨提示 */}
+        <Card title="温馨提示" className={styles.card}>
+          <div className={styles.tipsList}>
+            {tipsList.map((tip, index) => (
+              <div key={index} className={styles.tipItem}>
                 <Input
-                  placeholder="票型"
-                  value={ticket.type}
-                  onChange={(e) => handleTicketChange(index, 'type', e.target.value)}
-                  style={{ width: 120 }}
+                  value={tip}
+                  onChange={(e) => handleTipChange(index, e.target.value)}
+                  placeholder={`提示 ${index + 1}`}
                 />
-                <InputNumber
-                  placeholder="价格"
-                  value={ticket.price}
-                  onChange={(value) => handleTicketChange(index, 'price', value ?? 0)}
-                  min={0}
-                  prefix="¥"
-                  style={{ width: 120 }}
-                />
-                <Input
-                  placeholder="说明"
-                  value={ticket.description}
-                  onChange={(e) => handleTicketChange(index, 'description', e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                {tickets.length > 1 && (
-                  <Button danger onClick={() => handleRemoveTicket(index)}>
-                    删除
-                  </Button>
+                {tipsList.length > 1 && (
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleRemoveTip(index)}
+                  />
                 )}
               </div>
             ))}
-            <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddTicket}>
-              添加票型
+            <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddTip}>
+              添加提示
             </Button>
-          </div>
-
-          <Form.Item name="tips" label="温馨提示" className={styles.fullWidth}>
-            <TextArea rows={3} placeholder="游览注意事项、穿衣建议、携带物品等" />
-          </Form.Item>
-        </Card>
-
-        {/* 详细描述 */}
-        <Card title="📝 详细描述" className={styles.card}>
-          <Form.Item
-            name="description"
-            label="景点介绍"
-            rules={[{ required: true, message: '请输入景点介绍' }]}
-          >
-            <TextArea rows={4} placeholder="景点的详细介绍，包括历史背景、文化价值、主要看点等" maxLength={2000} />
-          </Form.Item>
-
-          <Form.Item
-            name="playIntro"
-            label="游玩简介"
-            rules={[{ required: true, message: '请输入游玩简介' }]}
-          >
-            <TextArea rows={3} placeholder="简要介绍游玩亮点和推荐路线" maxLength={500} />
-          </Form.Item>
-
-          <Form.Item name="locationIntro" label="地点介绍">
-            <TextArea rows={2} placeholder="景点周边环境、交通、配套服务等信息" maxLength={500} />
-          </Form.Item>
-
-          {isEdit && currentAttraction?.rating ? (
-            <div className={styles.ratingInfo}>
-              <span className={styles.ratingLabel}>用户评级分数</span>
-              <span className={styles.ratingValue}>⭐ {currentAttraction.rating}</span>
-              <span className={styles.ratingCount}>({currentAttraction.ratingCount}条评价)</span>
-              <span className={styles.ratingNote}>系统自动计算，每小时更新</span>
-            </div>
-          ) : null}
-        </Card>
-
-        {/* 媒体资源 */}
-        <Card title="🖼️ 媒体资源" className={styles.card}>
-          <Form.Item label="景点图片" required>
-            <Upload
-              listType="picture-card"
-              multiple
-              accept="image/*"
-              beforeUpload={() => false}
-              onChange={() => {}}
-            >
-              {images.length < 20 && (
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>上传图片</div>
-                </div>
-              )}
-            </Upload>
-            <div className={styles.uploadTip}>至少1张，最多20张，支持JPG/PNG，单张≤5MB</div>
-          </Form.Item>
-
-          <Form.Item name="video" label="景点视频">
-            <Input placeholder="请输入视频链接或上传视频文件" />
-          </Form.Item>
-
-          <div className={styles.formGrid2}>
-            <Form.Item label="景点标签">
-              <div className={styles.tags}>
-                {tagOptions.map((tag) => (
-                  <span
-                    key={tag}
-                    className={`${styles.tag} ${tags.includes(tag) ? styles.active : ''}`}
-                    onClick={() => handleTagChange(tag, !tags.includes(tag))}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </Form.Item>
-
-            <Form.Item label="运营设置">
-              <div className={styles.operationSettings}>
-                <Form.Item name="isRecommended" valuePropName="checked" noStyle>
-                  <Switch /> <span>设为推荐景点</span>
-                </Form.Item>
-                <div className={styles.sortWeight}>
-                  <span>排序权重</span>
-                  <Form.Item name="sortWeight" noStyle>
-                    <InputNumber min={0} max={999} style={{ width: 80 }} />
-                  </Form.Item>
-                  <span className={styles.sortTip}>数字越大越靠前</span>
-                </div>
-              </div>
-            </Form.Item>
           </div>
         </Card>
       </Form>

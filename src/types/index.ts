@@ -1,36 +1,24 @@
 // 景点相关类型
-export interface Ticket {
-  type: string;
-  price: number;
-  description: string;
-}
-
 export interface Attraction {
-  id: string;
-  name: string;
-  district: string;
-  category: string;
-  level: string;
-  address: string;
-  openTime: string;
-  suggestedDays: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  description: string;
-  playIntro: string;
-  locationIntro: string;
-  rating: number;
-  ratingCount: number;
-  tips: string;
-  tickets: Ticket[];
-  images: string[];
-  video: string;
-  tags: string[];
-  isRecommended: boolean;
-  sortWeight: number;
-  status: 'online' | 'pending' | 'offline';
-  viewCount: number;
-  createdAt: string;
-  updatedAt: string;
+  _id?: string;
+  name: string;                    // 景点名称
+  category: string;                // 分类（爬山、水上、古镇、露营等）
+  tags: string[];                  // 标签
+  location: string;                // 所在区域
+  distance: number;                // 距离（公里）
+  description: string;             // 描述
+  coverImage: string;              // 封面图
+  images: string[];                // 图片数组
+  wantCount: number;               // 想去人数
+  visitCount: number;              // 访问人数
+  tripCount: number;               // 行程数
+  difficulty: string;              // 难度
+  bestSeason: string;              // 最佳季节
+  duration: string;                // 游玩时长
+  altitude?: string;               // 海拔（可选）
+  openTime: string;                // 开放时间
+  tipsList: string[];              // 提示列表
+  createdAt: number;               // 创建时间戳
 }
 
 // 酒店相关类型
