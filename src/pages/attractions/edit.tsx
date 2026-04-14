@@ -66,18 +66,18 @@ const AttractionEdit: React.FC = () => {
         tipsList: tipsList.filter((t) => t.trim()),
       };
 
-      let success: boolean;
+      let result;
       if (isEdit && id) {
-        success = await update(id, data);
+        result = await update(id, data);
       } else {
-        success = await create(data);
+        result = await create(data);
       }
 
-      if (success) {
-        message.success(isEdit ? '更新成功' : '创建成功');
+      if (result.success) {
+        message.success(result.message);
         navigate('/attractions');
       } else {
-        message.error('操作失败');
+        message.error(result.message);
       }
     } catch (error) {
       console.error('Validation failed:', error);

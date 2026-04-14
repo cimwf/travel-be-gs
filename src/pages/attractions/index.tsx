@@ -47,10 +47,12 @@ const AttractionsList: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const success = await deleteAttraction(id);
-    if (success) {
-      message.success('删除成功');
+    const result = await deleteAttraction(id);
+    if (result.success) {
+      message.success(result.message);
       loadData();
+    } else {
+      message.error(result.message);
     }
   };
 

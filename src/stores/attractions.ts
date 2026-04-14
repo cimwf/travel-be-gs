@@ -1,6 +1,6 @@
 import { create } from 'zustand';
+import { getDb, initCloudBase } from '@/utils/cloudbase';
 import type { Attraction, PaginatedResponse } from '@/types';
-import { mockAttractions } from '@/mock/attractions';
 
 interface AttractionsState {
   attractions: Attraction[];
@@ -17,100 +17,143 @@ interface AttractionsState {
   }) => Promise<PaginatedResponse<Attraction>>;
 
   fetchById: (id: string) => Promise<Attraction | null>;
-  create: (data: Partial<Attraction>) => Promise<boolean>;
-  update: (id: string, data: Partial<Attraction>) => Promise<boolean>;
-  delete: (id: string) => Promise<boolean>;
+  create: (data: Partial<Attraction>) => Promise<{ success: boolean; message: string }>;
+  update: (id: string, data: Partial<Attraction>) => Promise<{ success: boolean; message: string }>;
+  delete: (id: string) => Promise<{ success: boolean; message: string }>;
 }
 
-export const useAttractionsStore = create<AttractionsState>(() => ({
+// 集合名称
+const COLLECTION = 'places';
+
+export const useAttractionsStore = create<AttractionsState>((set) => ({
   attractions: [],
   currentAttraction: null,
   loading: false,
   total: 0,
 
   fetchList: async ({ page, pageSize, keyword, category, location }) => {
-    // 模拟 API 延迟
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    set({ loading: true });
 
-    let filtered = [...mockAttractions];
+    try {
+      await initCloudBase();
+      const db = getDb();
 
-    if (keyword) {
-      filtered = filtered.filter((a) =>
-        a.name.toLowerCase().includes(keyword.toLowerCase())
-      );
+      // 构建查询条件
+      const whereCond: Record<string, unknown> = {};
+
+      if (keyword) {
+        whereCond.name = db.RegExp({
+          regexp: keyword,
+          options: 'i',
+        });
+      }
+
+      if (category && category !== 'all') {
+        whereCond.category = category;
+      }
+
+      if (location && location !== 'all') {
+        whereCond.location = location;
+      }
+
+      // 查询数据
+      const query = db.collection(COLLECTION).where(whereCond);
+
+      // 获取总数
+      const countResult = await query.count();
+      const total = countResult.total;
+
+      // 分页查询
+      const result = await db
+        .collection(COLLECTION)
+        .where(whereCond)
+        .orderBy('createdAt', 'desc')
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .get();
+
+      const list = (result.data || []) as Attraction[];
+
+      set({
+        attractions: list,
+        total,
+        loading: false,
+      });
+
+      return { list, total, page, pageSize };
+    } catch (error) {
+      console.error('Fetch attractions error:', error);
+      set({ loading: false, attractions: [], total: 0 });
+      return { list: [], total: 0, page, pageSize };
     }
-
-    if (category && category !== 'all') {
-      filtered = filtered.filter((a) => a.category === category);
-    }
-
-    if (location && location !== 'all') {
-      filtered = filtered.filter((a) => a.location === location);
-    }
-
-    const total = filtered.length;
-    const start = (page - 1) * pageSize;
-    const list = filtered.slice(start, start + pageSize);
-
-    return { list, total, page, pageSize };
   },
 
   fetchById: async (id: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return mockAttractions.find((a) => a._id === id) || null;
+    set({ loading: true });
+
+    try {
+      await initCloudBase();
+      const db = getDb();
+
+      const result = await db.collection(COLLECTION).doc(id).get();
+      const data = (Array.isArray(result.data) ? result.data[0] : result.data) as Attraction | null;
+
+      set({ currentAttraction: data, loading: false });
+      return data;
+    } catch (error) {
+      console.error('Fetch attraction error:', error);
+      set({ currentAttraction: null, loading: false });
+      return null;
+    }
   },
 
   create: async (data: Partial<Attraction>) => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      await initCloudBase();
+      const db = getDb();
 
-    const newAttraction: Attraction = {
-      _id: String(Date.now()),
-      name: data.name || '',
-      category: data.category || '',
-      tags: data.tags || [],
-      location: data.location || '',
-      distance: data.distance || 0,
-      description: data.description || '',
-      coverImage: data.coverImage || '',
-      images: data.images || [],
-      wantCount: 0,
-      visitCount: 0,
-      tripCount: 0,
-      difficulty: data.difficulty || '简单',
-      bestSeason: data.bestSeason || '',
-      duration: data.duration || '',
-      altitude: data.altitude,
-      openTime: data.openTime || '',
-      tipsList: data.tipsList || [],
-      createdAt: Date.now(),
-    };
+      const newPlace = {
+        ...data,
+        wantCount: 0,
+        visitCount: 0,
+        tripCount: 0,
+        createdAt: Date.now(),
+      };
 
-    mockAttractions.unshift(newAttraction);
-    return true;
+      await db.collection(COLLECTION).add(newPlace);
+
+      return { success: true, message: '添加成功' };
+    } catch (error) {
+      console.error('Create attraction error:', error);
+      return { success: false, message: '添加失败，请重试' };
+    }
   },
 
   update: async (id: string, data: Partial<Attraction>) => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      await initCloudBase();
+      const db = getDb();
 
-    const index = mockAttractions.findIndex((a) => a._id === id);
-    if (index !== -1) {
-      mockAttractions[index] = {
-        ...mockAttractions[index],
-        ...data,
-      };
-      return true;
+      await db.collection(COLLECTION).doc(id).update(data);
+
+      return { success: true, message: '更新成功' };
+    } catch (error) {
+      console.error('Update attraction error:', error);
+      return { success: false, message: '更新失败，请重试' };
     }
-    return false;
   },
 
   delete: async (id: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      await initCloudBase();
+      const db = getDb();
 
-    const index = mockAttractions.findIndex((a) => a._id === id);
-    if (index !== -1) {
-      mockAttractions.splice(index, 1);
-      return true;
+      await db.collection(COLLECTION).doc(id).remove();
+
+      return { success: true, message: '删除成功' };
+    } catch (error) {
+      console.error('Delete attraction error:', error);
+      return { success: false, message: '删除失败，请重试' };
     }
-    return false;
   },
 }));
