@@ -5,6 +5,7 @@ import Login from '@/pages/login';
 import Dashboard from '@/pages/dashboard';
 import AttractionsList from '@/pages/attractions';
 import AttractionEdit from '@/pages/attractions/edit';
+import Images from '@/pages/images';
 import Hotels from '@/pages/hotels';
 import Orders from '@/pages/orders';
 import Feedback from '@/pages/feedback';
@@ -43,6 +44,10 @@ const router = createBrowserRouter([
       {
         path: 'attractions/edit/:id',
         element: <AttractionEdit />,
+      },
+      {
+        path: 'images',
+        element: <Images />,
       },
       {
         path: 'hotels',

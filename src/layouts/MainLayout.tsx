@@ -12,6 +12,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  PictureOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
 import styles from './MainLayout.module.scss';
@@ -19,6 +20,7 @@ import styles from './MainLayout.module.scss';
 const menuItems = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '数据概览' },
   { key: '/attractions', icon: <EnvironmentOutlined />, label: '景点管理' },
+  { key: '/images', icon: <PictureOutlined />, label: '图片资源' },
   { key: '/hotels', icon: <HomeOutlined />, label: '酒店管理' },
   { key: '/orders', icon: <ShoppingCartOutlined />, label: '订单管理' },
   { key: '/feedback', icon: <MessageOutlined />, label: '用户反馈' },
@@ -59,6 +61,7 @@ const MainLayout: React.FC = () => {
     const nameMap: Record<string, string> = {
       dashboard: '数据概览',
       attractions: '景点管理',
+      images: '图片资源',
       hotels: '酒店管理',
       orders: '订单管理',
       feedback: '用户反馈',

@@ -10,15 +10,13 @@ import {
   Space,
   Spin,
   Image,
-  Upload,
 } from 'antd';
-import { PlusOutlined, ArrowLeftOutlined, DeleteOutlined, LoadingOutlined } from '@ant-design/icons';
+import { PlusOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAttractionsStore } from '@/stores/attractions';
 import { categoryOptions, difficultyOptions, locationOptions, tagOptions } from '@/mock/attractions';
-import { uploadFile } from '@/utils/cloudbase';
+import ImageSelector from '@/components/ImageSelector';
 import type { Attraction } from '@/types';
-import type { UploadProps, UploadFile } from 'antd/es/upload/interface';
 import styles from './edit.module.scss';
 
 const { TextArea } = Input;
@@ -33,13 +31,14 @@ const AttractionEdit: React.FC = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [tipsList, setTipsList] = useState<string[]>(['']);
 
-  // 封面图上传状态
-  const [coverUploading, setCoverUploading] = useState(false);
+  // 封面图
   const [coverUrl, setCoverUrl] = useState<string>('');
-
-  // 景点图片上传状态
-  const [imageUploading, setImageUploading] = useState<number | null>(null);
+  // 景点图片
   const [images, setImages] = useState<string[]>([]);
+
+  // 图片选择弹窗
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false);
+  const [selectTarget, setSelectTarget] = useState<'cover' | number | null>(null);
 
   const isEdit = !!id;
 
@@ -98,40 +97,31 @@ const AttractionEdit: React.FC = () => {
     }
   };
 
-  // 封面图上传处理
-  const handleCoverUpload = async (file: File) => {
-    setCoverUploading(true);
-    const result = await uploadFile(file);
-    setCoverUploading(false);
-
-    if (result.success) {
-      setCoverUrl(result.url);
-      message.success('封面上传成功');
-    } else {
-      message.error(result.message);
-    }
+  // 打开图片选择弹窗
+  const handleOpenImageSelector = (target: 'cover' | number) => {
+    setSelectTarget(target);
+    setImageSelectorOpen(true);
   };
 
-  // 景点图片上传处理
-  const handleImageUpload = async (index: number, file: File) => {
-    setImageUploading(index);
-    const result = await uploadFile(file);
-    setImageUploading(null);
-
-    if (result.success) {
+  // 选择图片回调
+  const handleImageSelect = (url: string) => {
+    if (selectTarget === 'cover') {
+      setCoverUrl(url);
+    } else if (typeof selectTarget === 'number') {
       const newImages = [...images];
-      newImages[index] = result.url;
+      newImages[selectTarget] = url;
       setImages(newImages);
-      message.success('图片上传成功');
-    } else {
-      message.error(result.message);
     }
   };
 
+  // 添加图片
   const handleAddImage = () => {
-    setImages([...images, '']);
+    // 打开图片选择弹窗，选择后添加到末尾
+    setSelectTarget(images.length);
+    setImageSelectorOpen(true);
   };
 
+  // 删除图片
   const handleRemoveImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
   };
@@ -156,16 +146,6 @@ const AttractionEdit: React.FC = () => {
     const newTips = [...tipsList];
     newTips[index] = value;
     setTipsList(newTips);
-  };
-
-  // 封面图上传组件属性
-  const coverUploadProps: UploadProps = {
-    accept: 'image/*',
-    showUploadList: false,
-    beforeUpload: (file) => {
-      handleCoverUpload(file);
-      return false;
-    },
   };
 
   if (loading && isEdit) {
@@ -281,7 +261,7 @@ const AttractionEdit: React.FC = () => {
 
         {/* 图片管理 */}
         <Card title="图片管理" className={styles.card}>
-          {/* 封面图上传 */}
+          {/* 封面图 */}
           <Form.Item label="封面图" required>
             <div className={styles.coverUpload}>
               {coverUrl ? (
@@ -294,24 +274,25 @@ const AttractionEdit: React.FC = () => {
                     fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                   />
                   <div className={styles.coverActions}>
-                    <Upload {...coverUploadProps}>
-                      <Button size="small" loading={coverUploading}>更换封面</Button>
-                    </Upload>
+                    <Button size="small" onClick={() => handleOpenImageSelector('cover')}>
+                      更换封面
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <Upload {...coverUploadProps}>
-                  <div className={styles.coverUploader}>
-                    {coverUploading ? <LoadingOutlined /> : <PlusOutlined />}
-                    <div className={styles.uploaderText}>上传封面</div>
-                  </div>
-                </Upload>
+                <div
+                  className={styles.coverUploader}
+                  onClick={() => handleOpenImageSelector('cover')}
+                >
+                  <PlusOutlined />
+                  <div className={styles.uploaderText}>选择图片</div>
+                </div>
               )}
-              <div className={styles.uploadHint}>建议尺寸 400x300，支持 jpg、png 格式</div>
+              <div className={styles.uploadHint}>建议尺寸 400x300</div>
             </div>
           </Form.Item>
 
-          {/* 景点图片上传 */}
+          {/* 景点图片 */}
           <Form.Item label="景点图片">
             <div className={styles.imageList}>
               {images.map((img, index) => (
@@ -326,16 +307,9 @@ const AttractionEdit: React.FC = () => {
                         fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                       />
                       <div className={styles.imageActions}>
-                        <Upload
-                          accept="image/*"
-                          showUploadList={false}
-                          beforeUpload={(file) => {
-                            handleImageUpload(index, file);
-                            return false;
-                          }}
-                        >
-                          <Button size="small" loading={imageUploading === index}>更换</Button>
-                        </Upload>
+                        <Button size="small" onClick={() => handleOpenImageSelector(index)}>
+                          更换
+                        </Button>
                         <Button
                           size="small"
                           danger
@@ -345,36 +319,21 @@ const AttractionEdit: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <Upload
-                      accept="image/*"
-                      showUploadList={false}
-                      beforeUpload={(file) => {
-                        handleImageUpload(index, file);
-                        return false;
-                      }}
+                    <div
+                      className={styles.imageUploader}
+                      onClick={() => handleOpenImageSelector(index)}
                     >
-                      <div className={styles.imageUploader}>
-                        {imageUploading === index ? <LoadingOutlined /> : <PlusOutlined />}
-                        <div className={styles.uploaderText}>上传</div>
-                      </div>
-                    </Upload>
+                      <PlusOutlined />
+                      <div className={styles.uploaderText}>选择</div>
+                    </div>
                   )}
                 </div>
               ))}
-              <Upload
-                accept="image/*"
-                showUploadList={false}
-                beforeUpload={(file) => {
-                  handleImageUpload(images.length, file);
-                  return false;
-                }}
-              >
-                <Button type="dashed" icon={<PlusOutlined />}>
-                  添加图片
-                </Button>
-              </Upload>
+              <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddImage}>
+                添加图片
+              </Button>
             </div>
-            <div className={styles.uploadHint}>支持 jpg、png 格式，可上传多张图片</div>
+            <div className={styles.uploadHint}>点击选择已有图片</div>
           </Form.Item>
         </Card>
 
@@ -418,6 +377,16 @@ const AttractionEdit: React.FC = () => {
           </div>
         </Card>
       </Form>
+
+      {/* 图片选择弹窗 */}
+      <ImageSelector
+        open={imageSelectorOpen}
+        onSelect={handleImageSelect}
+        onClose={() => {
+          setImageSelectorOpen(false);
+          setSelectTarget(null);
+        }}
+      />
     </div>
   );
 };
