@@ -42,16 +42,109 @@
   }
 }
 
-.imageList {
+.tipItem {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+// 封面图上传
+.coverUpload {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.imageItem {
+.coverPreview {
   display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+
+.coverActions {
+  display: flex;
+  gap: 8px;
+}
+
+.coverUploader {
+  width: 200px;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--gray-300);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--gray-50);
+
+  &:hover {
+    border-color: var(--primary-500);
+    background: var(--primary-50);
+  }
+
+  .anticon {
+    font-size: 28px;
+    color: var(--gray-400);
+  }
+}
+
+// 景点图片上传
+.imageList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.imageItem {
+  display: inline-block;
+}
+
+.imagePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.imageActions {
+  display: flex;
+  gap: 8px;
+}
+
+.imageUploader {
+  width: 120px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--gray-300);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--gray-50);
+
+  &:hover {
+    border-color: var(--primary-500);
+    background: var(--primary-50);
+  }
+
+  .anticon {
+    font-size: 20px;
+    color: var(--gray-400);
+  }
+}
+
+.uploaderText {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.uploadHint {
+  font-size: 12px;
+  color: var(--gray-500);
 }
 
 .tags {

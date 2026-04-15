@@ -10,12 +10,15 @@ import {
   Space,
   Spin,
   Image,
+  Upload,
 } from 'antd';
-import { PlusOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, ArrowLeftOutlined, DeleteOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAttractionsStore } from '@/stores/attractions';
 import { categoryOptions, difficultyOptions, locationOptions, tagOptions } from '@/mock/attractions';
+import { uploadFile } from '@/utils/cloudbase';
 import type { Attraction } from '@/types';
+import type { UploadProps, UploadFile } from 'antd/es/upload/interface';
 import styles from './edit.module.scss';
 
 const { TextArea } = Input;
@@ -27,9 +30,16 @@ const AttractionEdit: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tipsList, setTipsList] = useState<string[]>(['']);
+
+  // 封面图上传状态
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverUrl, setCoverUrl] = useState<string>('');
+
+  // 景点图片上传状态
+  const [imageUploading, setImageUploading] = useState<number | null>(null);
+  const [images, setImages] = useState<string[]>([]);
 
   const isEdit = !!id;
 
@@ -45,6 +55,7 @@ const AttractionEdit: React.FC = () => {
       const data = await fetchById(attractionId);
       if (data) {
         form.setFieldsValue(data);
+        setCoverUrl(data.coverImage || '');
         setImages(data.images || []);
         setTags(data.tags || []);
         setTipsList(data.tipsList?.length ? data.tipsList : ['']);
@@ -61,6 +72,7 @@ const AttractionEdit: React.FC = () => {
 
       const data: Partial<Attraction> = {
         ...values,
+        coverImage: coverUrl,
         images,
         tags,
         tipsList: tipsList.filter((t) => t.trim()),
@@ -86,18 +98,42 @@ const AttractionEdit: React.FC = () => {
     }
   };
 
+  // 封面图上传处理
+  const handleCoverUpload = async (file: File) => {
+    setCoverUploading(true);
+    const result = await uploadFile(file);
+    setCoverUploading(false);
+
+    if (result.success) {
+      setCoverUrl(result.url);
+      message.success('封面上传成功');
+    } else {
+      message.error(result.message);
+    }
+  };
+
+  // 景点图片上传处理
+  const handleImageUpload = async (index: number, file: File) => {
+    setImageUploading(index);
+    const result = await uploadFile(file);
+    setImageUploading(null);
+
+    if (result.success) {
+      const newImages = [...images];
+      newImages[index] = result.url;
+      setImages(newImages);
+      message.success('图片上传成功');
+    } else {
+      message.error(result.message);
+    }
+  };
+
   const handleAddImage = () => {
     setImages([...images, '']);
   };
 
   const handleRemoveImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
-  };
-
-  const handleImageChange = (index: number, value: string) => {
-    const newImages = [...images];
-    newImages[index] = value;
-    setImages(newImages);
   };
 
   const handleTagChange = (tag: string, checked: boolean) => {
@@ -120,6 +156,16 @@ const AttractionEdit: React.FC = () => {
     const newTips = [...tipsList];
     newTips[index] = value;
     setTipsList(newTips);
+  };
+
+  // 封面图上传组件属性
+  const coverUploadProps: UploadProps = {
+    accept: 'image/*',
+    showUploadList: false,
+    beforeUpload: (file) => {
+      handleCoverUpload(file);
+      return false;
+    },
   };
 
   if (loading && isEdit) {
@@ -235,44 +281,100 @@ const AttractionEdit: React.FC = () => {
 
         {/* 图片管理 */}
         <Card title="图片管理" className={styles.card}>
-          <Form.Item
-            name="coverImage"
-            label="封面图"
-            rules={[{ required: true, message: '请输入封面图URL' }]}
-          >
-            <Input placeholder="封面图URL（建议400x300）" />
+          {/* 封面图上传 */}
+          <Form.Item label="封面图" required>
+            <div className={styles.coverUpload}>
+              {coverUrl ? (
+                <div className={styles.coverPreview}>
+                  <Image
+                    src={coverUrl}
+                    width={200}
+                    height={150}
+                    style={{ objectFit: 'cover', borderRadius: 8 }}
+                    fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                  />
+                  <div className={styles.coverActions}>
+                    <Upload {...coverUploadProps}>
+                      <Button size="small" loading={coverUploading}>更换封面</Button>
+                    </Upload>
+                  </div>
+                </div>
+              ) : (
+                <Upload {...coverUploadProps}>
+                  <div className={styles.coverUploader}>
+                    {coverUploading ? <LoadingOutlined /> : <PlusOutlined />}
+                    <div className={styles.uploaderText}>上传封面</div>
+                  </div>
+                </Upload>
+              )}
+              <div className={styles.uploadHint}>建议尺寸 400x300，支持 jpg、png 格式</div>
+            </div>
           </Form.Item>
 
+          {/* 景点图片上传 */}
           <Form.Item label="景点图片">
             <div className={styles.imageList}>
               {images.map((img, index) => (
                 <div key={index} className={styles.imageItem}>
-                  <Input
-                    value={img}
-                    onChange={(e) => handleImageChange(index, e.target.value)}
-                    placeholder="图片URL"
-                    style={{ flex: 1 }}
-                  />
-                  {img && (
-                    <Image
-                      src={img}
-                      width={60}
-                      height={60}
-                      style={{ objectFit: 'cover', borderRadius: 4 }}
-                      fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-                    />
+                  {img ? (
+                    <div className={styles.imagePreview}>
+                      <Image
+                        src={img}
+                        width={120}
+                        height={90}
+                        style={{ objectFit: 'cover', borderRadius: 4 }}
+                        fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                      />
+                      <div className={styles.imageActions}>
+                        <Upload
+                          accept="image/*"
+                          showUploadList={false}
+                          beforeUpload={(file) => {
+                            handleImageUpload(index, file);
+                            return false;
+                          }}
+                        >
+                          <Button size="small" loading={imageUploading === index}>更换</Button>
+                        </Upload>
+                        <Button
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleRemoveImage(index)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <Upload
+                      accept="image/*"
+                      showUploadList={false}
+                      beforeUpload={(file) => {
+                        handleImageUpload(index, file);
+                        return false;
+                      }}
+                    >
+                      <div className={styles.imageUploader}>
+                        {imageUploading === index ? <LoadingOutlined /> : <PlusOutlined />}
+                        <div className={styles.uploaderText}>上传</div>
+                      </div>
+                    </Upload>
                   )}
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleRemoveImage(index)}
-                  />
                 </div>
               ))}
-              <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddImage}>
-                添加图片
-              </Button>
+              <Upload
+                accept="image/*"
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  handleImageUpload(images.length, file);
+                  return false;
+                }}
+              >
+                <Button type="dashed" icon={<PlusOutlined />}>
+                  添加图片
+                </Button>
+              </Upload>
             </div>
+            <div className={styles.uploadHint}>支持 jpg、png 格式，可上传多张图片</div>
           </Form.Item>
         </Card>
 
