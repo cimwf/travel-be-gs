@@ -22,6 +22,7 @@ interface AttractionsState {
   delete: (id: string) => Promise<{ success: boolean; message: string }>;
   updateSortOrder: (id: string, sortOrder: number) => Promise<{ success: boolean; message: string }>;
   initSortOrder: () => Promise<{ success: boolean; message: string }>;
+  batchCreate: (items: Partial<Attraction>[]) => Promise<{ success: boolean; message: string; count: number }>;
 }
 
 // 集合名称
@@ -202,6 +203,40 @@ export const useAttractionsStore = create<AttractionsState>((set) => ({
     } catch (error) {
       console.error('Init sort order error:', error);
       return { success: false, message: '初始化排序失败' };
+    }
+  },
+
+  batchCreate: async (items: Partial<Attraction>[]) => {
+    try {
+      await initCloudBase();
+      const db = getDb();
+
+      // 获取当前最大 sortOrder
+      const countResult = await db.collection(COLLECTION).count();
+      let baseSortOrder = countResult.total || 0;
+
+      let successCount = 0;
+      for (const item of items) {
+        try {
+          const newPlace = {
+            ...item,
+            wantCount: item.wantCount || 0,
+            visitCount: item.visitCount || 0,
+            tripCount: item.tripCount || 0,
+            sortOrder: item.sortOrder || ++baseSortOrder,
+            createdAt: item.createdAt || Date.now(),
+          };
+          await db.collection(COLLECTION).add(newPlace);
+          successCount++;
+        } catch (e) {
+          console.error('Batch create item error:', e);
+        }
+      }
+
+      return { success: true, message: `成功导入 ${successCount} 条数据`, count: successCount };
+    } catch (error) {
+      console.error('Batch create error:', error);
+      return { success: false, message: '批量导入失败', count: 0 };
     }
   },
 }));

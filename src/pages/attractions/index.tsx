@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Input, Select, Tag, Space, Popconfirm, message, Image } from 'antd';
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, UpOutlined, DownOutlined, SyncOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Input, Select, Tag, Space, Popconfirm, message, Image, Modal, InputNumber } from 'antd';
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, UpOutlined, DownOutlined, SyncOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAttractionsStore } from '@/stores/attractions';
 import { categoryOptions, locationOptions } from '@/mock/attractions';
 import type { Attraction } from '@/types';
 import styles from './index.module.scss';
+
+const { TextArea } = Input;
 
 const difficultyColorMap: Record<string, string> = {
   '简单': 'success',
@@ -15,7 +17,7 @@ const difficultyColorMap: Record<string, string> = {
 
 const AttractionsList: React.FC = () => {
   const navigate = useNavigate();
-  const { fetchList, delete: deleteAttraction, updateSortOrder, initSortOrder } = useAttractionsStore();
+  const { fetchList, delete: deleteAttraction, updateSortOrder, initSortOrder, batchCreate } = useAttractionsStore();
 
   const [data, setData] = useState<Attraction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +27,8 @@ const AttractionsList: React.FC = () => {
   const [keyword, setKeyword] = useState('');
   const [category, setCategory] = useState('all');
   const [location, setLocation] = useState('all');
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importJson, setImportJson] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -93,6 +97,76 @@ const AttractionsList: React.FC = () => {
       loadData();
     } else {
       message.error(result.message);
+    }
+  };
+
+  // 导出单条数据为 JSON
+  const handleExportJson = (record: Attraction) => {
+    const exportData = { ...record };
+    delete (exportData as { _id?: string })._id;
+    const jsonStr = JSON.stringify(exportData, null, 2);
+
+    navigator.clipboard.writeText(jsonStr).then(() => {
+      message.success('JSON 已复制到剪贴板');
+    }).catch(() => {
+      // 降级方案：创建下载
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${record.name}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  };
+
+  // 导出所有数据为 JSON
+  const handleExportAllJson = () => {
+    const exportData = data.map(item => {
+      const obj = { ...item };
+      delete (obj as { _id?: string })._id;
+      return obj;
+    });
+    const jsonStr = JSON.stringify(exportData, null, 2);
+
+    navigator.clipboard.writeText(jsonStr).then(() => {
+      message.success(`已复制 ${exportData.length} 条数据的 JSON 到剪贴板`);
+    }).catch(() => {
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'attractions.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  };
+
+  // 导入 JSON 数据
+  const handleImportJson = async () => {
+    try {
+      const parsed = JSON.parse(importJson);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+
+      // 验证必要字段
+      const validItems = items.filter(item => item.name && item.category);
+
+      if (validItems.length === 0) {
+        message.error('没有有效的景点数据，请确保包含 name 和 category 字段');
+        return;
+      }
+
+      const result = await batchCreate(validItems);
+      if (result.success) {
+        message.success(result.message);
+        setImportModalOpen(false);
+        setImportJson('');
+        loadData();
+      } else {
+        message.error(result.message);
+      }
+    } catch {
+      message.error('JSON 格式错误，请检查');
     }
   };
 
@@ -165,7 +239,7 @@ const AttractionsList: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 250,
+      width: 300,
       render: (_: unknown, record: Attraction, index: number) => (
         <Space size="small">
           <Button
@@ -185,6 +259,14 @@ const AttractionsList: React.FC = () => {
             onClick={() => handleMoveDown(record)}
           >
             下移
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => handleExportJson(record)}
+          >
+            JSON
           </Button>
           <Button
             type="link"
@@ -245,6 +327,12 @@ const AttractionsList: React.FC = () => {
             />
           </div>
           <Space>
+            <Button icon={<CopyOutlined />} onClick={handleExportAllJson}>
+              导出JSON
+            </Button>
+            <Button icon={<ImportOutlined />} onClick={() => setImportModalOpen(true)}>
+              批量导入
+            </Button>
             <Popconfirm
               title="初始化排序将按创建时间为所有景点重新排序，确定执行吗？"
               onConfirm={handleInitSortOrder}
@@ -284,6 +372,38 @@ const AttractionsList: React.FC = () => {
           }}
         />
       </Card>
+
+      {/* 批量导入 Modal */}
+      <Modal
+        title="批量导入景点"
+        open={importModalOpen}
+        onCancel={() => {
+          setImportModalOpen(false);
+          setImportJson('');
+        }}
+        onOk={handleImportJson}
+        okText="导入"
+        cancelText="取消"
+        width={700}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <p style={{ color: '#666', marginBottom: 8 }}>
+            请粘贴 JSON 数据，支持单个景点对象或数组格式。必填字段：name、category
+          </p>
+          <p style={{ color: '#999', fontSize: 12 }}>
+            参考格式：
+            <code style={{ background: '#f5f5f5', padding: '2px 6px', marginLeft: 4 }}>
+              {"{ \"name\": \"景点名\", \"category\": \"爬山\", ... }"}
+            </code>
+          </p>
+        </div>
+        <TextArea
+          rows={15}
+          placeholder='{"name": "景点名", "category": "爬山", "location": "区域", ...}'
+          value={importJson}
+          onChange={(e) => setImportJson(e.target.value)}
+        />
+      </Modal>
     </div>
   );
 };
