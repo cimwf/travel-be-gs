@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Input, Select, Tag, Space, Popconfirm, message, Image, Modal, InputNumber } from 'antd';
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, UpOutlined, DownOutlined, SyncOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Input, Select, Tag, Space, Popconfirm, message, Image, Modal, Typography } from 'antd';
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, UpOutlined, DownOutlined, SyncOutlined, CopyOutlined, ImportOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAttractionsStore } from '@/stores/attractions';
 import { categoryOptions, locationOptions } from '@/mock/attractions';
@@ -8,6 +8,7 @@ import type { Attraction } from '@/types';
 import styles from './index.module.scss';
 
 const { TextArea } = Input;
+const { Paragraph } = Typography;
 
 const difficultyColorMap: Record<string, string> = {
   '简单': 'success',
@@ -170,6 +171,90 @@ const AttractionsList: React.FC = () => {
     }
   };
 
+  // 字段说明文本
+  const fieldDescription = `景点数据字段说明：
+
+【必填字段】
+- name: 景点名称，字符串类型
+- category: 分类，可选值：爬山、水上、古镇、露营
+- location: 所在区域，如：门头沟区、延庆区等
+- distance: 距离市中心的公里数，数字类型
+- difficulty: 难度，可选值：简单、中等、困难
+- duration: 游玩时长，如：1天、半天
+- bestSeason: 最佳季节，如：春秋、四季
+- openTime: 开放时间，如：全天开放、8:00-17:00
+- description: 景点描述，字符串
+
+【可选字段 - 基础信息】
+- intro: 一句话简介，如：北京最高峰，云海日出+高山草甸
+- difficultyDesc: 难度描述，如：路线较长且爬升明显，对体力要求较高
+- timeCostDetail: 时间详情，如：单程登顶约4-6小时
+- altitude: 海拔，如：2303m
+- cost: 费用，如：人均50-100元
+- transport: 交通，如：建议自驾，导航至xxx
+- rating: 评分，数字0-5
+
+【可选字段 - 图片】
+- coverImage: 封面图URL
+- images: 图片URL数组，如：["图片1", "图片2"]
+
+【可选字段 - 数组】
+- tags: 标签数组，如：["日出", "云海"]
+- tipsList: 温馨提示数组，如：["提示1", "提示2"]
+- highlight: 亮点数组，如：["北京最高峰", "震撼云海日出"]
+- features: 特色数组，如：["云海概率很高", "适合看日出"]
+- suitableFor: 适合人群数组，如：["户外徒步爱好者", "摄影爱好者"]
+- avoidFor: 不适合人群数组，如：["新手小白", "体力较差人群"]
+
+【可选字段 - 统计】
+- wantCount: 想去人数，数字，默认0
+- visitCount: 访问人数，数字，默认0
+- tripCount: 行程数，数字，默认0
+
+【JSON示例】
+{
+  "name": "东灵山",
+  "category": "爬山",
+  "location": "门头沟区",
+  "distance": 120,
+  "difficulty": "困难",
+  "difficultyDesc": "路线较长且爬升明显，对体力要求较高",
+  "duration": "1天",
+  "timeCostDetail": "单程登顶约4-6小时，建议凌晨出发看日出",
+  "bestSeason": "春夏秋",
+  "openTime": "全天开放",
+  "intro": "北京最高峰，云海日出+高山草甸，徒步天花板",
+  "description": "想挑战北京最高峰？东灵山绝对值得一去...",
+  "cost": "人均50-100元",
+  "transport": "建议自驾，导航至东灵山登山口",
+  "rating": 4.8,
+  "altitude": "2303m",
+  "coverImage": "https://example.com/cover.jpg",
+  "images": ["https://example.com/1.jpg"],
+  "tags": ["日出", "云海", "露营"],
+  "tipsList": ["山顶气温较低，建议携带保暖衣物"],
+  "highlight": ["北京最高峰", "震撼云海日出"],
+  "features": ["云海概率很高", "适合看日出"],
+  "suitableFor": ["户外徒步爱好者"],
+  "avoidFor": ["新手小白"]
+}`;
+
+  const handleCopyFieldDescription = () => {
+    navigator.clipboard.writeText(fieldDescription).then(() => {
+      message.success('字段说明已复制到剪贴板');
+    }).catch(() => {
+      Modal.info({
+        title: '景点字段说明',
+        width: 700,
+        content: (
+          <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 13 }}>
+            {fieldDescription}
+          </div>
+        ),
+      });
+    });
+  };
+
   const columns = [
     {
       title: '封面',
@@ -327,6 +412,9 @@ const AttractionsList: React.FC = () => {
             />
           </div>
           <Space>
+            <Button icon={<QuestionCircleOutlined />} onClick={handleCopyFieldDescription}>
+              字段说明
+            </Button>
             <Button icon={<CopyOutlined />} onClick={handleExportAllJson}>
               导出JSON
             </Button>

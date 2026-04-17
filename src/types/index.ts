@@ -13,10 +13,20 @@ export interface Attraction {
   visitCount: number;              // 访问人数
   tripCount: number;               // 行程数
   difficulty: string;              // 难度
+  difficultyDesc?: string;         // 难度描述
   bestSeason: string;              // 最佳季节
   duration: string;                // 游玩时长
+  timeCostDetail?: string;         // 时间花费详情
   altitude?: string;               // 海拔（可选）
   openTime: string;                // 开放时间
+  intro?: string;                  // 简介
+  highlight?: string[];            // 亮点
+  features?: string[];             // 特色
+  suitableFor?: string[];          // 适合人群
+  avoidFor?: string[];             // 不适合人群
+  cost?: string;                   // 费用
+  transport?: string;              // 交通
+  rating?: number;                 // 评分
   tipsList: string[];              // 提示列表
   sortOrder: number;               // 排序权重（越小越靠前）
   createdAt: number;               // 创建时间戳
