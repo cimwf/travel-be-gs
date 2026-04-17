@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Input, Select, Tag, Space, Popconfirm, message, Image } from 'antd';
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, UpOutlined, DownOutlined, SyncOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAttractionsStore } from '@/stores/attractions';
 import { categoryOptions, locationOptions } from '@/mock/attractions';
@@ -15,7 +15,7 @@ const difficultyColorMap: Record<string, string> = {
 
 const AttractionsList: React.FC = () => {
   const navigate = useNavigate();
-  const { fetchList, delete: deleteAttraction } = useAttractionsStore();
+  const { fetchList, delete: deleteAttraction, updateSortOrder, initSortOrder } = useAttractionsStore();
 
   const [data, setData] = useState<Attraction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +48,46 @@ const AttractionsList: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     const result = await deleteAttraction(id);
+    if (result.success) {
+      message.success(result.message);
+      loadData();
+    } else {
+      message.error(result.message);
+    }
+  };
+
+  const handleMoveUp = async (record: Attraction) => {
+    const currentIndex = data.findIndex(item => item._id === record._id);
+    if (currentIndex <= 0) return;
+
+    const prevItem = data[currentIndex - 1];
+
+    // 使用临时值避免冲突：先设成一个大负数
+    await updateSortOrder(record._id!, -1000);
+    await updateSortOrder(prevItem._id!, record.sortOrder);
+    await updateSortOrder(record._id!, prevItem.sortOrder);
+
+    message.success('上移成功');
+    loadData();
+  };
+
+  const handleMoveDown = async (record: Attraction) => {
+    const currentIndex = data.findIndex(item => item._id === record._id);
+    if (currentIndex >= data.length - 1) return;
+
+    const nextItem = data[currentIndex + 1];
+
+    // 使用临时值避免冲突：先设成一个大数
+    await updateSortOrder(record._id!, 10000);
+    await updateSortOrder(nextItem._id!, record.sortOrder);
+    await updateSortOrder(record._id!, nextItem.sortOrder);
+
+    message.success('下移成功');
+    loadData();
+  };
+
+  const handleInitSortOrder = async () => {
+    const result = await initSortOrder();
     if (result.success) {
       message.success(result.message);
       loadData();
@@ -125,9 +165,27 @@ const AttractionsList: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 150,
-      render: (_: unknown, record: Attraction) => (
+      width: 250,
+      render: (_: unknown, record: Attraction, index: number) => (
         <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            icon={<UpOutlined />}
+            disabled={index === 0}
+            onClick={() => handleMoveUp(record)}
+          >
+            上移
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<DownOutlined />}
+            disabled={index === data.length - 1}
+            onClick={() => handleMoveDown(record)}
+          >
+            下移
+          </Button>
           <Button
             type="link"
             size="small"
@@ -186,13 +244,25 @@ const AttractionsList: React.FC = () => {
               ]}
             />
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/attractions/create')}
-          >
-            新增景点
-          </Button>
+          <Space>
+            <Popconfirm
+              title="初始化排序将按创建时间为所有景点重新排序，确定执行吗？"
+              onConfirm={handleInitSortOrder}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button icon={<SyncOutlined />}>
+                初始化排序
+              </Button>
+            </Popconfirm>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/attractions/create')}
+            >
+              新增景点
+            </Button>
+          </Space>
         </div>
 
         <Table

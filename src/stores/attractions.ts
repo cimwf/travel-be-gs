@@ -20,6 +20,8 @@ interface AttractionsState {
   create: (data: Partial<Attraction>) => Promise<{ success: boolean; message: string }>;
   update: (id: string, data: Partial<Attraction>) => Promise<{ success: boolean; message: string }>;
   delete: (id: string) => Promise<{ success: boolean; message: string }>;
+  updateSortOrder: (id: string, sortOrder: number) => Promise<{ success: boolean; message: string }>;
+  initSortOrder: () => Promise<{ success: boolean; message: string }>;
 }
 
 // 集合名称
@@ -63,11 +65,11 @@ export const useAttractionsStore = create<AttractionsState>((set) => ({
       const countResult = await query.count();
       const total = countResult.total;
 
-      // 分页查询
+      // 分页查询，只按 sortOrder 升序
       const result = await db
         .collection(COLLECTION)
         .where(whereCond)
-        .orderBy('createdAt', 'desc')
+        .orderBy('sortOrder', 'asc')
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .get();
@@ -112,11 +114,16 @@ export const useAttractionsStore = create<AttractionsState>((set) => ({
       await initCloudBase();
       const db = getDb();
 
+      // 获取当前最大 sortOrder
+      const countResult = await db.collection(COLLECTION).count();
+      const maxSortOrder = countResult.total || 0;
+
       const newPlace = {
         ...data,
         wantCount: 0,
         visitCount: 0,
         tripCount: 0,
+        sortOrder: maxSortOrder + 1,
         createdAt: Date.now(),
       };
 
@@ -154,6 +161,47 @@ export const useAttractionsStore = create<AttractionsState>((set) => ({
     } catch (error) {
       console.error('Delete attraction error:', error);
       return { success: false, message: '删除失败，请重试' };
+    }
+  },
+
+  updateSortOrder: async (id: string, sortOrder: number) => {
+    try {
+      await initCloudBase();
+      const db = getDb();
+
+      await db.collection(COLLECTION).doc(id).update({ sortOrder });
+
+      return { success: true, message: '排序更新成功' };
+    } catch (error) {
+      console.error('Update sort order error:', error);
+      return { success: false, message: '排序更新失败' };
+    }
+  },
+
+  initSortOrder: async () => {
+    try {
+      await initCloudBase();
+      const db = getDb();
+
+      // 获取所有数据，按创建时间排序
+      const result = await db
+        .collection(COLLECTION)
+        .orderBy('createdAt', 'asc')
+        .limit(1000)
+        .get();
+
+      const list = result.data || [];
+
+      // 强制重新设置所有数据的 sortOrder
+      for (let i = 0; i < list.length; i++) {
+        const item = list[i];
+        await db.collection(COLLECTION).doc(item._id).update({ sortOrder: i + 1 });
+      }
+
+      return { success: true, message: `已初始化 ${list.length} 条数据的排序` };
+    } catch (error) {
+      console.error('Init sort order error:', error);
+      return { success: false, message: '初始化排序失败' };
     }
   },
 }));

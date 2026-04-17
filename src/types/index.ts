@@ -18,6 +18,7 @@ export interface Attraction {
   altitude?: string;               // 海拔（可选）
   openTime: string;                // 开放时间
   tipsList: string[];              // 提示列表
+  sortOrder: number;               // 排序权重（越小越靠前）
   createdAt: number;               // 创建时间戳
 }
 
