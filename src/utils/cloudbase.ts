@@ -76,7 +76,7 @@ export const uploadFile = async (file: File): Promise<{ success: boolean; url: s
 
     const result = await app.uploadFile({
       cloudPath: fileName,
-      filePath: file,
+      filePath: file as unknown as string,
     });
 
     if (result.fileID) {

@@ -29,6 +29,7 @@ export const mockAttractions: Attraction[] = [
       '山区信号较弱，建议提前下载离线地图',
       '带足饮用水和食物，山上没有补给点',
     ],
+    sortOrder: 1,
     createdAt: 1712505600000,
   },
   {
@@ -58,6 +59,7 @@ export const mockAttractions: Attraction[] = [
       '最佳露营季节为6-9月',
       '可从大海坨或小海坨两条路线登山',
     ],
+    sortOrder: 2,
     createdAt: 1712505600000,
   },
   {
@@ -87,6 +89,7 @@ export const mockAttractions: Attraction[] = [
       '山顶有百花圣母庙',
       '可从门头沟或房山两个方向上山',
     ],
+    sortOrder: 3,
     createdAt: 1712505600000,
   },
   {
@@ -116,6 +119,7 @@ export const mockAttractions: Attraction[] = [
       '周末人较多，建议工作日前往',
       '可乘坐索道上山',
     ],
+    sortOrder: 4,
     createdAt: 1712505600000,
   },
   {
@@ -145,6 +149,7 @@ export const mockAttractions: Attraction[] = [
       '提前在网上购票',
       '人多时建议选择慕田峪',
     ],
+    sortOrder: 5,
     createdAt: 1712505600000,
   },
   {
@@ -174,6 +179,7 @@ export const mockAttractions: Attraction[] = [
       '可乘坐缆车或滑道',
       '周边有虹鳟鱼美食',
     ],
+    sortOrder: 6,
     createdAt: 1712505600000,
   },
   {
@@ -202,6 +208,7 @@ export const mockAttractions: Attraction[] = [
       '蹦极需要提前预约',
       '可选择东湖港或孤山寨等景点',
     ],
+    sortOrder: 7,
     createdAt: 1712505600000,
   },
   {
@@ -230,6 +237,7 @@ export const mockAttractions: Attraction[] = [
       '蹦极高度55米，华北最高',
       '周边农家院可住宿',
     ],
+    sortOrder: 8,
     createdAt: 1712505600000,
   },
   {
@@ -258,6 +266,7 @@ export const mockAttractions: Attraction[] = [
       '可爬司马台长城看日落',
       '温泉票需单独购买',
     ],
+    sortOrder: 9,
     createdAt: 1712505600000,
   },
   {
@@ -286,6 +295,7 @@ export const mockAttractions: Attraction[] = [
       '可在农家院吃住',
       '适合摄影创作',
     ],
+    sortOrder: 10,
     createdAt: 1712505600000,
   },
   {
@@ -314,6 +324,7 @@ export const mockAttractions: Attraction[] = [
       '适合野餐露营',
       '注意保护环境',
     ],
+    sortOrder: 11,
     createdAt: 1712505600000,
   },
   {
@@ -342,6 +353,7 @@ export const mockAttractions: Attraction[] = [
       '夜晚可观赏星空',
       '距离较远，建议自驾',
     ],
+    sortOrder: 12,
     createdAt: 1712505600000,
   },
   {
@@ -370,6 +382,7 @@ export const mockAttractions: Attraction[] = [
       '适合团建活动',
       '周边有农家院',
     ],
+    sortOrder: 13,
     createdAt: 1712505600000,
   },
 ];
