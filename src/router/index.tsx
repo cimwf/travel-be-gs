@@ -6,6 +6,7 @@ import Dashboard from '@/pages/dashboard';
 import AttractionsList from '@/pages/attractions';
 import AttractionEdit from '@/pages/attractions/edit';
 import Images from '@/pages/images';
+import Banners from '@/pages/banners';
 import Hotels from '@/pages/hotels';
 import Orders from '@/pages/orders';
 import Feedback from '@/pages/feedback';
@@ -48,6 +49,10 @@ const router = createBrowserRouter([
       {
         path: 'images',
         element: <Images />,
+      },
+      {
+        path: 'banners',
+        element: <Banners />,
       },
       {
         path: 'hotels',

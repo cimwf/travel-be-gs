@@ -1,0 +1,41 @@
+.container {
+  padding: 24px;
+}
+
+.toolbar {
+  margin-bottom: 20px;
+}
+
+.imageUpload {
+  display: flex;
+  flex-direction: column;
+}
+
+.uploadBtn {
+  width: 200px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--gray-300);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--gray-50);
+
+  &:hover {
+    border-color: var(--primary-500);
+    background: var(--primary-50);
+  }
+
+  span {
+    margin-top: 8px;
+    color: var(--gray-500);
+  }
+}
+
+.imagePreview {
+  display: flex;
+  flex-direction: column;
+}
