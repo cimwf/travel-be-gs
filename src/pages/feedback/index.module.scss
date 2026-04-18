@@ -13,3 +13,23 @@
   display: flex;
   gap: 12px;
 }
+
+.detail {
+  .detailItem {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 16px;
+
+    label {
+      width: 80px;
+      flex-shrink: 0;
+      color: var(--gray-500);
+    }
+
+    p {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  }
+}
