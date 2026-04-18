@@ -13,3 +13,45 @@
   display: flex;
   gap: 12px;
 }
+
+.detail {
+  .detailHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .detailInfo {
+    flex: 1;
+  }
+
+  .nickname {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .bio {
+    color: var(--gray-500);
+    font-size: 14px;
+  }
+
+  .detailItem {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 12px;
+
+    label {
+      width: 80px;
+      flex-shrink: 0;
+      color: var(--gray-500);
+    }
+
+    span {
+      flex: 1;
+    }
+  }
+}
