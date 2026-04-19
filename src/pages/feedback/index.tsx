@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Tag, Space, Button, Select, Modal, message, Avatar } from 'antd';
+import { Card, Table, Tag, Space, Button, Select, Modal, message, Avatar, Popconfirm } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
 import { useFeedbackStore } from '@/stores/feedback';
 import styles from './index.module.scss';
 
 const Feedback: React.FC = () => {
-  const { feedbacks, loading, total, fetchList, updateStatus } = useFeedbackStore();
+  const { feedbacks, loading, total, fetchList, updateStatus, delete: deleteFeedback } = useFeedbackStore();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -17,6 +18,16 @@ const Feedback: React.FC = () => {
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     const result = await updateStatus(id, newStatus);
+    if (result.success) {
+      message.success(result.message);
+      fetchList({ page, pageSize, status: statusFilter });
+    } else {
+      message.error(result.message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const result = await deleteFeedback(id);
     if (result.success) {
       message.success(result.message);
       fetchList({ page, pageSize, status: statusFilter });
@@ -121,6 +132,16 @@ const Feedback: React.FC = () => {
               标记完成
             </Button>
           )}
+          <Popconfirm
+            title="确定删除此反馈？"
+            onConfirm={() => handleDelete(record._id)}
+            okText="确定"
+            cancelText="取消"
+          >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },

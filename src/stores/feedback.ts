@@ -29,6 +29,7 @@ interface FeedbackState {
   }) => Promise<void>;
 
   updateStatus: (id: string, status: string) => Promise<{ success: boolean; message: string }>;
+  delete: (id: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const COLLECTION = 'feedbacks';
@@ -143,6 +144,20 @@ export const useFeedbackStore = create<FeedbackState>((set) => ({
     } catch (error) {
       console.error('Update feedback status error:', error);
       return { success: false, message: '状态更新失败' };
+    }
+  },
+
+  delete: async (id: string) => {
+    try {
+      await initCloudBase();
+      const db = getDb();
+
+      await db.collection(COLLECTION).doc(id).remove();
+
+      return { success: true, message: '删除成功' };
+    } catch (error) {
+      console.error('Delete feedback error:', error);
+      return { success: false, message: '删除失败' };
     }
   },
 }));
