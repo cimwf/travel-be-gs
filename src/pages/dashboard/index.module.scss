@@ -3,7 +3,7 @@
 }
 
 .statCards {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .statCard {
@@ -54,6 +54,11 @@
   gap: 4px;
 }
 
+.statSubValue {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
 .chartCard {
   margin-bottom: 24px;
 }
@@ -76,4 +81,63 @@
     font-size: 0.875rem;
     color: var(--gray-700);
   }
+}
+
+// 转化漏斗样式
+.funnel {
+  margin-bottom: 20px;
+}
+
+.funnelItem {
+  margin-bottom: 12px;
+}
+
+.funnelLabel {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+}
+
+.funnelRate {
+  color: var(--gray-400);
+  margin-left: 8px;
+}
+
+.funnelBar {
+  height: 24px;
+  background: var(--gray-100);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.funnelBarInner {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.funnelSummary {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.funnelSummaryItem {
+  text-align: center;
+
+  span:first-child {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+  }
+}
+
+.funnelSummaryValue {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-600);
 }
