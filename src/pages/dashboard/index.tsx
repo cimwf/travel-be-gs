@@ -1,12 +1,9 @@
-import React from 'react';
-import { Card, Row, Col, Table, Progress } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Table, Progress, Spin, Segmented } from 'antd';
 import {
+  EyeOutlined,
   UserOutlined,
-  ShoppingCartOutlined,
-  DollarOutlined,
-  MessageOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import {
   LineChart,
@@ -17,46 +14,88 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  BarChart,
+  Bar,
 } from 'recharts';
-import { mockDashboardData } from '@/mock/attractions';
+import { useViewStatsStore } from '@/stores/viewStats';
+import { useFeedbackStore } from '@/stores/feedback';
+import { useUsersStore } from '@/stores/users';
+import { useAttractionsStore } from '@/stores/attractions';
 import styles from './index.module.scss';
 
 const Dashboard: React.FC = () => {
-  const { stats, trendData, hotAttractions } = mockDashboardData;
+  const {
+    totalViews,
+    todayViews,
+    weekViews,
+    monthViews,
+    dailyTrend,
+    weeklyTrend,
+    topPlaces,
+    loading,
+    fetchStats,
+    fetchTrend,
+    fetchTopPlaces,
+  } = useViewStatsStore();
+
+  const { total: totalFeedbacks, fetchList: fetchFeedbacks } = useFeedbackStore();
+  const { total: totalUsers, fetchList: fetchUsers } = useUsersStore();
+  const { total: totalAttractions, fetchList: fetchAttractions } = useAttractionsStore();
+
+  const [trendType, setTrendType] = useState<'daily' | 'weekly'>('daily');
+  const [trendDays, setTrendDays] = useState(7);
+
+  useEffect(() => {
+    // 并行获取所有数据
+    Promise.all([
+      fetchStats(),
+      fetchTrend('daily', 7),
+      fetchTopPlaces(10),
+      fetchFeedbacks({ page: 1, pageSize: 1 }),
+      fetchUsers({ page: 1, pageSize: 1 }),
+      fetchAttractions({ page: 1, pageSize: 1, keyword: '', category: 'all', location: 'all' }),
+    ]);
+  }, []);
+
+  // 切换趋势类型
+  useEffect(() => {
+    fetchTrend(trendType, trendType === 'daily' ? trendDays : 8);
+  }, [trendType, trendDays]);
 
   const statCards = [
     {
-      title: '今日 DAU',
-      value: stats.dau.toLocaleString(),
-      change: stats.dauChange,
-      icon: <UserOutlined />,
+      title: '总浏览量',
+      value: totalViews.toLocaleString(),
+      subValue: `今日 ${todayViews.toLocaleString()}`,
+      icon: <EyeOutlined />,
       color: 'var(--primary-500)',
     },
     {
-      title: '今日订单',
-      value: stats.orders.toLocaleString(),
-      change: stats.ordersChange,
-      icon: <ShoppingCartOutlined />,
+      title: '本周浏览',
+      value: weekViews.toLocaleString(),
+      subValue: '近7天累计',
+      icon: <CalendarOutlined />,
       color: 'var(--success-500)',
     },
     {
-      title: '今日 GMV',
-      value: `¥${stats.gmv.toLocaleString()}`,
-      change: stats.gmvChange,
-      icon: <DollarOutlined />,
+      title: '本月浏览',
+      value: monthViews.toLocaleString(),
+      subValue: '近30天累计',
+      icon: <CalendarOutlined />,
       color: 'var(--warning-500)',
     },
     {
-      title: '待处理反馈',
-      value: stats.pendingFeedback,
-      change: 0,
-      icon: <MessageOutlined />,
-      color: 'var(--error-500)',
-      isPending: true,
+      title: '用户/景点/反馈',
+      value: `${totalUsers}/${totalAttractions}/${totalFeedbacks}`,
+      subValue: '累计数据',
+      icon: <UserOutlined />,
+      color: 'var(--info-500)',
     },
   ];
 
-  const columns = [
+  const trendData = trendType === 'daily' ? dailyTrend : weeklyTrend;
+
+  const topColumns = [
     {
       title: '排名',
       key: 'rank',
@@ -65,13 +104,13 @@ const Dashboard: React.FC = () => {
     },
     {
       title: '景点名称',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: 'placeName',
+      key: 'placeName',
     },
     {
       title: '浏览量',
-      dataIndex: 'viewCount',
-      key: 'viewCount',
+      dataIndex: 'totalCount',
+      key: 'totalCount',
       render: (value: number) => value.toLocaleString(),
     },
   ];
@@ -83,131 +122,168 @@ const Dashboard: React.FC = () => {
         <p className="page-subtitle">实时运营数据监控</p>
       </div>
 
-      {/* 统计卡片 */}
-      <Row gutter={16} className={styles.statCards}>
-        {statCards.map((stat, index) => (
-          <Col xs={24} sm={12} lg={6} key={index}>
-            <Card className={styles.statCard}>
-              <div className={styles.statIcon} style={{ backgroundColor: `${stat.color}20`, color: stat.color }}>
-                {stat.icon}
-              </div>
-              <div className={styles.statInfo}>
-                <p className={styles.statLabel}>{stat.title}</p>
-                <p className={styles.statValue}>{stat.value}</p>
-                {!stat.isPending && (
-                  <p className={styles.statChange} style={{ color: stat.change >= 0 ? 'var(--success-500)' : 'var(--error-500)' }}>
-                    {stat.change >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                    <span>{Math.abs(stat.change)}%</span>
-                  </p>
-                )}
-                {stat.isPending && (
-                  <p className={styles.statChange} style={{ color: 'var(--warning-500)' }}>
-                    待处理
-                  </p>
-                )}
+      <Spin spinning={loading}>
+        {/* 统计卡片 */}
+        <Row gutter={16} className={styles.statCards}>
+          {statCards.map((stat, index) => (
+            <Col xs={24} sm={12} lg={6} key={index}>
+              <Card className={styles.statCard}>
+                <div className={styles.statIcon} style={{ backgroundColor: `${stat.color}20`, color: stat.color }}>
+                  {stat.icon}
+                </div>
+                <div className={styles.statInfo}>
+                  <p className={styles.statLabel}>{stat.title}</p>
+                  <p className={styles.statValue}>{stat.value}</p>
+                  <p className={styles.statSubValue}>{stat.subValue}</p>
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+
+        {/* 趋势图表 */}
+        <Card
+          className={styles.chartCard}
+          title="浏览趋势"
+          extra={
+            <Space>
+              <Segmented
+                value={trendType}
+                onChange={(value) => setTrendType(value as 'daily' | 'weekly')}
+                options={[
+                  { label: '按日', value: 'daily' },
+                  { label: '按周', value: 'weekly' },
+                ]}
+              />
+              {trendType === 'daily' && (
+                <Segmented
+                  value={trendDays}
+                  onChange={(value) => setTrendDays(value as number)}
+                  options={[
+                    { label: '7天', value: 7 },
+                    { label: '14天', value: 14 },
+                    { label: '30天', value: 30 },
+                  ]}
+                />
+              )}
+            </Space>
+          }
+        >
+          <ResponsiveContainer width="100%" height={300}>
+            {trendType === 'daily' ? (
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" />
+                <XAxis dataKey="date" stroke="var(--gray-500)" />
+                <YAxis stroke="var(--gray-500)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid var(--gray-200)',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  name="浏览量"
+                  stroke="var(--primary-500)"
+                  strokeWidth={2}
+                  dot={{ fill: 'var(--primary-500)', r: 3 }}
+                />
+              </LineChart>
+            ) : (
+              <BarChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" />
+                <XAxis dataKey="date" stroke="var(--gray-500)" />
+                <YAxis stroke="var(--gray-500)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid var(--gray-200)',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="count" name="周浏览量" fill="var(--primary-500)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </Card>
+
+        {/* 热门景点排行 */}
+        <Row gutter={16}>
+          <Col xs={24} lg={12}>
+            <Card className={styles.rankCard} title="热门景点排行（近30天）">
+              <Table
+                dataSource={topPlaces}
+                columns={topColumns}
+                pagination={false}
+                size="small"
+                rowKey="placeId"
+                locale={{ emptyText: '暂无数据' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} lg={12}>
+            <Card className={styles.rankCard} title="浏览量统计">
+              <div className={styles.progressList}>
+                <div className={styles.progressItem}>
+                  <div className={styles.progressLabel}>
+                    <span>今日浏览</span>
+                    <span>{todayViews.toLocaleString()}</span>
+                  </div>
+                  <Progress
+                    percent={Math.min((todayViews / 100) * 100, 100)}
+                    showInfo={false}
+                    strokeColor="var(--primary-500)"
+                  />
+                </div>
+                <div className={styles.progressItem}>
+                  <div className={styles.progressLabel}>
+                    <span>本周浏览</span>
+                    <span>{weekViews.toLocaleString()}</span>
+                  </div>
+                  <Progress
+                    percent={Math.min((weekViews / 500) * 100, 100)}
+                    showInfo={false}
+                    strokeColor="var(--success-500)"
+                  />
+                </div>
+                <div className={styles.progressItem}>
+                  <div className={styles.progressLabel}>
+                    <span>本月浏览</span>
+                    <span>{monthViews.toLocaleString()}</span>
+                  </div>
+                  <Progress
+                    percent={Math.min((monthViews / 2000) * 100, 100)}
+                    showInfo={false}
+                    strokeColor="var(--warning-500)"
+                  />
+                </div>
+                <div className={styles.progressItem}>
+                  <div className={styles.progressLabel}>
+                    <span>总浏览量</span>
+                    <span>{totalViews.toLocaleString()}</span>
+                  </div>
+                  <Progress
+                    percent={Math.min((totalViews / 10000) * 100, 100)}
+                    showInfo={false}
+                    strokeColor="var(--info-500)"
+                  />
+                </div>
               </div>
             </Card>
           </Col>
-        ))}
-      </Row>
-
-      {/* 趋势图表 */}
-      <Card className={styles.chartCard} title="访问趋势（近7天）">
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" />
-            <XAxis dataKey="date" stroke="var(--gray-500)" />
-            <YAxis yAxisId="left" stroke="var(--gray-500)" />
-            <YAxis yAxisId="right" orientation="right" stroke="var(--gray-500)" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid var(--gray-200)',
-                borderRadius: 'var(--radius-md)',
-              }}
-            />
-            <Legend />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="dau"
-              name="DAU"
-              stroke="var(--primary-500)"
-              strokeWidth={2}
-              dot={{ fill: 'var(--primary-500)' }}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="orders"
-              name="订单量"
-              stroke="var(--success-500)"
-              strokeWidth={2}
-              dot={{ fill: 'var(--success-500)' }}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="gmv"
-              name="GMV(元)"
-              stroke="var(--warning-500)"
-              strokeWidth={2}
-              dot={{ fill: 'var(--warning-500)' }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* 热门景点排行 */}
-      <Row gutter={16}>
-        <Col xs={24} lg={12}>
-          <Card className={styles.rankCard} title="热门景点排行">
-            <Table
-              dataSource={hotAttractions}
-              columns={columns}
-              pagination={false}
-              size="small"
-              rowKey="name"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card className={styles.rankCard} title="运营数据概览">
-            <div className={styles.progressList}>
-              <div className={styles.progressItem}>
-                <div className={styles.progressLabel}>
-                  <span>景点上线率</span>
-                  <span>85%</span>
-                </div>
-                <Progress percent={85} showInfo={false} strokeColor="var(--primary-500)" />
-              </div>
-              <div className={styles.progressItem}>
-                <div className={styles.progressLabel}>
-                  <span>订单完成率</span>
-                  <span>92%</span>
-                </div>
-                <Progress percent={92} showInfo={false} strokeColor="var(--success-500)" />
-              </div>
-              <div className={styles.progressItem}>
-                <div className={styles.progressLabel}>
-                  <span>用户满意度</span>
-                  <span>4.5/5</span>
-                </div>
-                <Progress percent={90} showInfo={false} strokeColor="var(--warning-500)" />
-              </div>
-              <div className={styles.progressItem}>
-                <div className={styles.progressLabel}>
-                  <span>反馈处理率</span>
-                  <span>78%</span>
-                </div>
-                <Progress percent={78} showInfo={false} strokeColor="var(--error-500)" />
-              </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+        </Row>
+      </Spin>
     </div>
   );
 };
+
+// Space 组件
+const Space: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div style={{ display: 'flex', gap: '12px' }}>{children}</div>
+);
 
 export default Dashboard;
