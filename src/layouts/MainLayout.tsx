@@ -28,6 +28,7 @@ const menuItems = [
   { key: '/orders', icon: <ShoppingCartOutlined />, label: '订单管理' },
   { key: '/feedback', icon: <MessageOutlined />, label: '用户反馈' },
   { key: '/users', icon: <UserOutlined />, label: '用户管理' },
+  { key: '/userSpots', icon: <EnvironmentOutlined />, label: '用户上传' },
   { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
 ];
 
@@ -70,6 +71,7 @@ const MainLayout: React.FC = () => {
       orders: '订单管理',
       feedback: '用户反馈',
       users: '用户管理',
+      userSpots: '用户上传',
       settings: '系统设置',
       edit: '编辑',
       create: '新增',

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getDb, initCloudBase } from '@/utils/cloudbase';
+import app from '@/utils/cloudbase';
 
 export interface QuickAttraction {
   _id?: string;
@@ -63,6 +64,30 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
         .get();
 
       const list = (result.data || []) as QuickAttraction[];
+
+      // 转换 cloud:// 链接为临时访问链接
+      const cloudUrls = list
+        .filter(item => item.coverImage?.startsWith('cloud://'))
+        .map(item => item.coverImage);
+
+      if (cloudUrls.length > 0) {
+        try {
+          const urlResult = await app.getTempFileURL({ fileList: cloudUrls });
+          if (urlResult.fileList) {
+            const urlMap: Record<string, string> = {};
+            urlResult.fileList.forEach((item: { fileid: string; tempFileURL: string }) => {
+              urlMap[item.fileid] = item.tempFileURL;
+            });
+            list.forEach(item => {
+              if (item.coverImage && urlMap[item.coverImage]) {
+                item.coverImage = urlMap[item.coverImage];
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Convert cloud URL error:', error);
+        }
+      }
 
       set({
         attractions: list,

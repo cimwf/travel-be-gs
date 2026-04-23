@@ -12,6 +12,7 @@ import Banners from '@/pages/banners';
 import Hotels from '@/pages/hotels';
 import Orders from '@/pages/orders';
 import Feedback from '@/pages/feedback';
+import UserSpots from '@/pages/userSpots';
 import Users from '@/pages/users';
 import Settings from '@/pages/settings';
 
@@ -75,6 +76,10 @@ const router = createBrowserRouter([
       {
         path: 'feedback',
         element: <Feedback />,
+      },
+      {
+        path: 'userSpots',
+        element: <UserSpots />,
       },
       {
         path: 'users',
