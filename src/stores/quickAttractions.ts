@@ -22,8 +22,8 @@ interface QuickAttractionsState {
 
   create: (data: Partial<QuickAttraction>) => Promise<{ success: boolean; message: string }>;
   batchCreate: (items: Partial<QuickAttraction>[]) => Promise<{ success: boolean; message: string }>;
+  update: (id: string, data: Partial<QuickAttraction>) => Promise<{ success: boolean; message: string }>;
   delete: (id: string) => Promise<{ success: boolean; message: string }>;
-  moveToAttractions: (id: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const COLLECTION = 'quick_attractions';
@@ -142,48 +142,17 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
     }
   },
 
-  moveToAttractions: async (id: string) => {
+  update: async (id: string, data) => {
     try {
       await initCloudBase();
       const db = getDb();
 
-      // 获取快速添加的景点
-      const result = await db.collection(COLLECTION).doc(id).get();
-      const quickData = result.data as QuickAttraction;
+      await db.collection(COLLECTION).doc(id).update(data);
 
-      if (!quickData) {
-        return { success: false, message: '景点不存在' };
-      }
-
-      // 添加到正式景点表
-      await db.collection(PLACES_COLLECTION).add({
-        name: quickData.name,
-        location: quickData.location,
-        coverImage: quickData.coverImage,
-        // 默认值
-        category: 'other',
-        distance: 0,
-        difficulty: '简单',
-        duration: '半天',
-        bestSeason: '四季',
-        openTime: '全天开放',
-        description: quickData.name,
-        tags: [],
-        tipsList: [],
-        images: [],
-        wantCount: 0,
-        visitCount: 0,
-        tripCount: 0,
-        createdAt: Date.now(),
-      });
-
-      // 从快速添加表删除
-      await db.collection(COLLECTION).doc(id).remove();
-
-      return { success: true, message: '已转为正式景点' };
+      return { success: true, message: '修改成功' };
     } catch (error) {
-      console.error('Move to attractions error:', error);
-      return { success: false, message: '操作失败' };
+      console.error('Update quick attraction error:', error);
+      return { success: false, message: '修改失败，请重试' };
     }
   },
 }));

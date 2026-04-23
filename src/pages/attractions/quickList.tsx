@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Input, Space, Popconfirm, message, Image, Empty, Modal } from 'antd';
-import { SearchOutlined, DeleteOutlined, ArrowRightOutlined, ReloadOutlined, ImportOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Input, Space, Popconfirm, message, Image, Empty, Modal, Form, Select } from 'antd';
+import { SearchOutlined, DeleteOutlined, EditOutlined, ReloadOutlined, ImportOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useQuickAttractionsStore } from '@/stores/quickAttractions';
+import { locationOptions } from '@/mock/attractions';
+import ImageSelector from '@/components/ImageSelector';
 import styles from './index.module.scss';
 
 const { TextArea } = Input;
 
 const QuickAttractionsList: React.FC = () => {
   const navigate = useNavigate();
-  const { fetchList, delete: deleteAttraction, moveToAttractions, batchCreate, attractions, total, loading } = useQuickAttractionsStore();
+  const { fetchList, delete: deleteAttraction, update, batchCreate, attractions, total, loading } = useQuickAttractionsStore();
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -17,6 +19,11 @@ const QuickAttractionsList: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [importing, setImporting] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<{ _id?: string; name: string; location: string; coverImage: string } | null>(null);
+  const [editCoverUrl, setEditCoverUrl] = useState('');
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false);
+  const [editForm] = Form.useForm();
 
   const loadData = async () => {
     await fetchList({ page, pageSize, keyword });
@@ -41,13 +48,33 @@ const QuickAttractionsList: React.FC = () => {
     }
   };
 
-  const handleMoveToAttractions = async (id: string) => {
-    const result = await moveToAttractions(id);
-    if (result.success) {
-      message.success(result.message);
-      loadData();
-    } else {
-      message.error(result.message);
+  const openEditModal = (record: { _id?: string; name: string; location: string; coverImage: string }) => {
+    setEditingItem(record);
+    setEditCoverUrl(record.coverImage);
+    editForm.setFieldsValue({ name: record.name, location: record.location });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingItem?._id) return;
+
+    try {
+      const values = await editForm.validateFields();
+      const result = await update(editingItem._id, {
+        name: values.name,
+        location: values.location,
+        coverImage: editCoverUrl,
+      });
+
+      if (result.success) {
+        message.success(result.message);
+        setEditModalOpen(false);
+        loadData();
+      } else {
+        message.error(result.message);
+      }
+    } catch {
+      // validation failed
     }
   };
 
@@ -119,16 +146,16 @@ const QuickAttractionsList: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
-      render: (_: unknown, record: { _id?: string; name: string }) => (
+      width: 150,
+      render: (_: unknown, record: { _id?: string; name: string; location: string; coverImage: string }) => (
         <Space size="small">
           <Button
             type="link"
             size="small"
-            icon={<ArrowRightOutlined />}
-            onClick={() => handleMoveToAttractions(record._id!)}
+            icon={<EditOutlined />}
+            onClick={() => openEditModal(record)}
           >
-            转为正式景点
+            编辑
           </Button>
           <Popconfirm
             title="确定要删除此景点吗？"
@@ -243,6 +270,71 @@ const QuickAttractionsList: React.FC = () => {
           onChange={(e) => setImportJson(e.target.value)}
         />
       </Modal>
+
+      {/* 编辑弹窗 */}
+      <Modal
+        title="编辑景点"
+        open={editModalOpen}
+        onCancel={() => setEditModalOpen(false)}
+        onOk={handleEditSubmit}
+        okText="保存"
+        cancelText="取消"
+        width={500}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item
+            name="name"
+            label="景点名称"
+            rules={[{ required: true, message: '请输入景点名称' }]}
+          >
+            <Input placeholder="请输入景点名称" maxLength={50} />
+          </Form.Item>
+
+          <Form.Item
+            name="location"
+            label="所在地区"
+            rules={[{ required: true, message: '请选择所在地区' }]}
+          >
+            <Select
+              placeholder="请选择所在地区"
+              options={locationOptions.map((l) => ({ value: l, label: l }))}
+            />
+          </Form.Item>
+
+          <Form.Item label="景点封面">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              {editCoverUrl ? (
+                <Space>
+                  <Image
+                    src={editCoverUrl}
+                    width={120}
+                    height={90}
+                    style={{ objectFit: 'cover', borderRadius: 4 }}
+                    fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                  />
+                  <Button size="small" onClick={() => setImageSelectorOpen(true)}>
+                    更换
+                  </Button>
+                </Space>
+              ) : (
+                <Button onClick={() => setImageSelectorOpen(true)}>
+                  选择封面
+                </Button>
+              )}
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 图片选择弹窗 */}
+      <ImageSelector
+        open={imageSelectorOpen}
+        onSelect={(url) => {
+          setEditCoverUrl(url);
+          setImageSelectorOpen(false);
+        }}
+        onClose={() => setImageSelectorOpen(false)}
+      />
     </div>
   );
 };
