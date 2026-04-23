@@ -438,6 +438,17 @@ const AttractionsList: React.FC = () => {
             >
               新增景点
             </Button>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/attractions/quickAdd')}
+            >
+              快速添加
+            </Button>
+            <Button
+              onClick={() => navigate('/attractions/quickList')}
+            >
+              景点列表
+            </Button>
           </Space>
         </div>
 

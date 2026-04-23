@@ -5,6 +5,8 @@ import Login from '@/pages/login';
 import Dashboard from '@/pages/dashboard';
 import AttractionsList from '@/pages/attractions';
 import AttractionEdit from '@/pages/attractions/edit';
+import AttractionQuickAdd from '@/pages/attractions/quickAdd';
+import AttractionQuickList from '@/pages/attractions/quickList';
 import Images from '@/pages/images';
 import Banners from '@/pages/banners';
 import Hotels from '@/pages/hotels';
@@ -41,6 +43,14 @@ const router = createBrowserRouter([
       {
         path: 'attractions/create',
         element: <AttractionEdit />,
+      },
+      {
+        path: 'attractions/quickAdd',
+        element: <AttractionQuickAdd />,
+      },
+      {
+        path: 'attractions/quickList',
+        element: <AttractionQuickList />,
       },
       {
         path: 'attractions/edit/:id',

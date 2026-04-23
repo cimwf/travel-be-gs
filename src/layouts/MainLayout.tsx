@@ -21,6 +21,7 @@ import styles from './MainLayout.module.scss';
 const menuItems = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '数据概览' },
   { key: '/attractions', icon: <EnvironmentOutlined />, label: '景点管理' },
+  { key: '/attractions/quickList', icon: <EnvironmentOutlined />, label: '景点列表' },
   { key: '/images', icon: <PictureOutlined />, label: '图片资源' },
   { key: '/banners', icon: <AppstoreOutlined />, label: 'Banner 管理' },
   { key: '/hotels', icon: <HomeOutlined />, label: '酒店管理' },
@@ -72,6 +73,8 @@ const MainLayout: React.FC = () => {
       settings: '系统设置',
       edit: '编辑',
       create: '新增',
+      quickList: '景点列表',
+      quickAdd: '快速添加',
     };
 
     const items: { title: string; href?: string }[] = [{ title: '首页', href: '/dashboard' }];
@@ -98,7 +101,7 @@ const MainLayout: React.FC = () => {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname.split('/').slice(0, 2).join('/') || '/dashboard']}
+          selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
           inlineCollapsed={collapsed}
