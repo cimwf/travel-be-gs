@@ -159,7 +159,7 @@ export const useViewStatsStore = create<ViewStatsState>((set) => ({
         const result = await db
           .collection(COLLECTION)
           .where({
-            date: db.command.gte(startDate),
+            date: db.command.gte(startDate as unknown as number),
           })
           .get();
 
@@ -193,7 +193,7 @@ export const useViewStatsStore = create<ViewStatsState>((set) => ({
           const result = await db
             .collection(COLLECTION)
             .where({
-              date: db.command.gte(start).and(db.command.lte(end)),
+              date: db.command.gte(start as unknown as number).and(db.command.lte(end as unknown as number)),
             })
             .get();
 
@@ -229,7 +229,7 @@ export const useViewStatsStore = create<ViewStatsState>((set) => ({
       const result = await db
         .collection(COLLECTION)
         .where({
-          date: db.command.gte(startDate),
+          date: db.command.gte(startDate as unknown as number),
         })
         .get();
 

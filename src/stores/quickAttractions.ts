@@ -75,8 +75,8 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
           const urlResult = await app.getTempFileURL({ fileList: cloudUrls });
           if (urlResult.fileList) {
             const urlMap: Record<string, string> = {};
-            urlResult.fileList.forEach((item: { fileid: string; tempFileURL: string }) => {
-              urlMap[item.fileid] = item.tempFileURL;
+            urlResult.fileList.forEach((item: { fileID: string; tempFileURL: string }) => {
+              urlMap[item.fileID] = item.tempFileURL;
             });
             list.forEach(item => {
               if (item.coverImage && urlMap[item.coverImage]) {

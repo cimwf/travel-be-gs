@@ -187,7 +187,7 @@ export const useUserStatsStore = create<UserStatsState>((set) => ({
       const result = await db
         .collection(COLLECTION)
         .where({
-          date: db.command.gte(startDate),
+          date: db.command.gte(startDate as unknown as number),
         })
         .get();
 

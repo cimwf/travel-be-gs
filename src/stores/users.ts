@@ -92,8 +92,8 @@ export const useUsersStore = create<UsersState>((set) => ({
 
           if (urlResult.fileList) {
             const urlMap: Record<string, string> = {};
-            urlResult.fileList.forEach((item: { fileid: string; tempFileURL: string }) => {
-              urlMap[item.fileid] = item.tempFileURL;
+            urlResult.fileList.forEach((item: { fileID: string; tempFileURL: string }) => {
+              urlMap[item.fileID] = item.tempFileURL;
             });
 
             // 更新链接
