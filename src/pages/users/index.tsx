@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Input, Space, Button, Avatar, Tag, Modal, message } from 'antd';
-import { SearchOutlined, ManOutlined, WomanOutlined } from '@ant-design/icons';
+import { Card, Table, Input, Space, Button, Avatar, Tag, Modal, message, Statistic, Row, Col } from 'antd';
+import { SearchOutlined, ManOutlined, WomanOutlined, UserOutlined, TeamOutlined } from '@ant-design/icons';
 import { useUsersStore, type UserItem } from '@/stores/users';
 import styles from './index.module.scss';
 
@@ -118,6 +118,28 @@ const Users: React.FC = () => {
       <div className="page-header">
         <h1 className="page-title">用户管理</h1>
       </div>
+
+      {/* 统计卡片 */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="用户总数"
+              value={total}
+              prefix={<TeamOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="当前页"
+              value={users.length}
+              prefix={<UserOutlined />}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       <Card>
         <div className={styles.toolbar}>
