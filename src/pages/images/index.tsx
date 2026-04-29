@@ -20,8 +20,11 @@ import {
   UploadOutlined,
   ImportOutlined,
   EditOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
+import JSZip from 'jszip';
 import { useImagesStore, type ImageFolder } from '@/stores/images';
+import app, { initCloudBase } from '@/utils/cloudbase';
 import styles from './index.module.scss';
 
 const { TextArea } = Input;
@@ -33,6 +36,7 @@ const ImagesPage: React.FC = () => {
     loading,
     fetchImages,
     fetchFolders,
+    fetchAllImages,
     createFolder,
     renameFolder,
     deleteFolder,
@@ -51,6 +55,7 @@ const ImagesPage: React.FC = () => {
   const [importUrls, setImportUrls] = useState('');
   const [importing, setImporting] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetchFolders();
@@ -177,6 +182,133 @@ const ImagesPage: React.FC = () => {
     }
   };
 
+  // 构建文件夹ID到路径的映射
+  const buildFolderPathMap = (allFolders: ImageFolder[]): Map<string, string> => {
+    const map = new Map<string, string>();
+    const folderById = new Map(allFolders.map((f) => [f._id, f]));
+
+    const getPath = (id: string): string => {
+      if (map.has(id)) return map.get(id)!;
+      const folder = folderById.get(id);
+      if (!folder) return '';
+      const parentPath = folder.parentId ? getPath(folder.parentId) : '';
+      const fullPath = parentPath ? `${parentPath}/${folder.name}` : folder.name;
+      map.set(id, fullPath);
+      return fullPath;
+    };
+
+    allFolders.forEach((f) => getPath(f._id));
+    return map;
+  };
+
+  // 下载全部图片
+  const handleDownloadAll = async () => {
+    setDownloading(true);
+    try {
+      const allFolders = folders;
+      const allImages = await fetchAllImages();
+
+      console.log('[下载全部] 获取到图片数量:', allImages.length);
+      console.log('[下载全部] 图片数据:', allImages);
+
+      if (allImages.length === 0) {
+        message.warning('没有可下载的图片');
+        setDownloading(false);
+        return;
+      }
+
+      await initCloudBase();
+
+      // 为所有 cloud:// 文件刷新临时链接
+      const cloudFileIds = allImages
+        .map((img) => img.fileID)
+        .filter((id): id is string => !!id && id.startsWith('cloud://'));
+
+      // 去重
+      const uniqueCloudIds = [...new Set(cloudFileIds)];
+      console.log('[下载全部] 云存储文件ID:', uniqueCloudIds);
+
+      const tempUrlMap = new Map<string, string>();
+      if (uniqueCloudIds.length > 0) {
+        try {
+          const urlResult = await app.getTempFileURL({
+            fileList: uniqueCloudIds,
+          });
+          console.log('[下载全部] getTempFileURL 结果:', urlResult);
+          if (urlResult.fileList) {
+            urlResult.fileList.forEach((item) => {
+              if (item.fileID && item.tempFileURL) {
+                tempUrlMap.set(item.fileID, item.tempFileURL);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('[下载全部] getTempFileURL 失败:', e);
+        }
+      }
+
+      console.log('[下载全部] 临时链接映射:', [...tempUrlMap.entries()]);
+
+      const folderPathMap = buildFolderPathMap(allFolders);
+      const zip = new JSZip();
+      let successCount = 0;
+
+      const downloadPromises = allImages.map(async (image) => {
+        try {
+          // 云存储文件优先用刷新后的临时链接，外部链接用存储的 url
+          let downloadUrl = image.url;
+          if (image.fileID && tempUrlMap.has(image.fileID)) {
+            downloadUrl = tempUrlMap.get(image.fileID)!;
+          }
+
+          console.log('[下载全部] 下载:', image.name, 'URL:', downloadUrl);
+
+          const response = await fetch(downloadUrl);
+          if (!response.ok) {
+            console.error('[下载全部] fetch 失败:', image.name, response.status, response.statusText);
+            throw new Error(`Fetch failed: ${response.status}`);
+          }
+          const blob = await response.blob();
+          console.log('[下载全部] 下载成功:', image.name, 'size:', blob.size);
+
+          const folderPath = image.folderId ? folderPathMap.get(image.folderId) || '' : '';
+          const filePath = folderPath ? `${folderPath}/${image.name}` : image.name;
+
+          zip.file(filePath, blob);
+          successCount++;
+        } catch (e) {
+          console.error('[下载全部] 图片下载异常:', image.name, e);
+        }
+      });
+
+      await Promise.all(downloadPromises);
+
+      console.log('[下载全部] 成功:', successCount, '/', allImages.length);
+
+      if (successCount === 0) {
+        message.warning('所有图片下载失败，请检查图片链接是否有效');
+        setDownloading(false);
+        return;
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = 'images.zip';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      message.success(`已打包下载 ${successCount}/${allImages.length} 张图片`);
+    } catch (e) {
+      console.error('[下载全部] 整体异常:', e);
+      message.error('下载失败，请稍后重试');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   // 当前文件夹下的子文件夹
   const currentFolders = folders.filter((f) => f.parentId === currentFolderId);
   // 当前文件夹下的图片
@@ -215,6 +347,13 @@ const ImagesPage: React.FC = () => {
             </Button>
             <Button icon={<ImportOutlined />} onClick={() => setImportVisible(true)}>
               批量导入
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadAll}
+              loading={downloading}
+            >
+              下载全部
             </Button>
             <Upload
               accept="image/*"

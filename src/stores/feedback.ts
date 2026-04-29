@@ -74,7 +74,7 @@ export const useFeedbackStore = create<FeedbackState>((set) => ({
 
       // 获取总数
       const countResult = await db.collection(COLLECTION).where(whereCond).count();
-      const total = countResult.total;
+      const total = countResult.total || 0;
 
       // 分页查询
       const result = await db

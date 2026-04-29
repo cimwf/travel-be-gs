@@ -1,7 +1,7 @@
 import cloudbase from '@cloudbase/js-sdk';
 
 // 云开发环境 ID
-const envId = 'cloud1-1gxcobd051830cce';
+const envId = 'prod-d2gkmbquec074b1df';
 
 console.log('CloudBase 环境 ID:', envId);
 

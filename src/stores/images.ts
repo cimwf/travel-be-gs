@@ -30,6 +30,7 @@ interface ImagesState {
 
   // 图片操作
   fetchImages: (folderId?: string) => Promise<void>;
+  fetchAllImages: () => Promise<ImageItem[]>;
   uploadImage: (file: File, folderId?: string) => Promise<{ success: boolean; message: string; url?: string }>;
   importImage: (url: string, name?: string, folderId?: string) => Promise<{ success: boolean; message: string }>;
   importImages: (urls: string[], folderId?: string) => Promise<{ success: number; failed: number }>;
@@ -128,6 +129,24 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
     } catch (error) {
       console.error('Delete folder error:', error);
       return { success: false, message: '删除失败' };
+    }
+  },
+
+  // 获取所有图片（不分文件夹）
+  fetchAllImages: async () => {
+    try {
+      await initCloudBase();
+      const db = getDb();
+
+      const result = await db
+        .collection(COLLECTION_IMAGES)
+        .orderBy('createdAt', 'desc')
+        .get();
+
+      return (result.data || []) as ImageItem[];
+    } catch (error) {
+      console.error('Fetch all images error:', error);
+      return [];
     }
   },
 

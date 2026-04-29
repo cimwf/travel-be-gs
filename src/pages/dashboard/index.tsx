@@ -94,28 +94,28 @@ const Dashboard: React.FC = () => {
   const viewStatCards = [
     {
       title: '总浏览量',
-      value: totalViews.toLocaleString(),
-      subValue: `今日 ${todayViews.toLocaleString()}`,
+      value: (totalViews ?? 0).toLocaleString(),
+      subValue: `今日 ${(todayViews ?? 0).toLocaleString()}`,
       icon: <EyeOutlined />,
       color: 'var(--primary-500)',
     },
     {
       title: '本周浏览',
-      value: weekViews.toLocaleString(),
+      value: (weekViews ?? 0).toLocaleString(),
       subValue: '近7天累计',
       icon: <CalendarOutlined />,
       color: 'var(--success-500)',
     },
     {
       title: '本月浏览',
-      value: monthViews.toLocaleString(),
+      value: (monthViews ?? 0).toLocaleString(),
       subValue: '近30天累计',
       icon: <CalendarOutlined />,
       color: 'var(--warning-500)',
     },
     {
       title: '景点总数',
-      value: totalAttractions.toLocaleString(),
+      value: (totalAttractions ?? 0).toLocaleString(),
       subValue: `反馈 ${totalFeedbacks}`,
       icon: <TeamOutlined />,
       color: 'var(--info-500)',
@@ -126,21 +126,21 @@ const Dashboard: React.FC = () => {
   const userStatCards = [
     {
       title: '今日日活',
-      value: todayActiveUsers.toLocaleString(),
+      value: (todayActiveUsers ?? 0).toLocaleString(),
       subValue: 'DAU',
       icon: <UserOutlined />,
       color: 'var(--primary-500)',
     },
     {
       title: '本周日活',
-      value: weekActiveUsers.toLocaleString(),
+      value: (weekActiveUsers ?? 0).toLocaleString(),
       subValue: '近7天累计',
       icon: <TeamOutlined />,
       color: 'var(--success-500)',
     },
     {
       title: '本月日活',
-      value: monthActiveUsers.toLocaleString(),
+      value: (monthActiveUsers ?? 0).toLocaleString(),
       subValue: '近30天累计',
       icon: <TeamOutlined />,
       color: 'var(--warning-500)',
@@ -172,7 +172,7 @@ const Dashboard: React.FC = () => {
       title: '浏览量',
       dataIndex: 'totalCount',
       key: 'totalCount',
-      render: (value: number) => value.toLocaleString(),
+      render: (value: number) => (value ?? 0).toLocaleString(),
     },
   ];
 
@@ -378,7 +378,7 @@ const Dashboard: React.FC = () => {
                       <div className={styles.funnelLabel}>
                         <span>{item.name}</span>
                         <span>
-                          {item.value.toLocaleString()}
+                          {(item.value ?? 0).toLocaleString()}
                           {index > 0 && <span className={styles.funnelRate}> ({rate}%)</span>}
                         </span>
                       </div>

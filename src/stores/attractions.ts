@@ -64,7 +64,7 @@ export const useAttractionsStore = create<AttractionsState>((set) => ({
 
       // 获取总数
       const countResult = await query.count();
-      const total = countResult.total;
+      const total = countResult.total || 0;
 
       // 分页查询，只按 sortOrder 升序
       const result = await db
