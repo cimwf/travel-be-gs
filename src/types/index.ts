@@ -124,6 +124,63 @@ export interface AIImageTemplate {
   updatedAt?: number;
 }
 
+// AI 生图套餐
+export interface AIImagePackage {
+  _id?: string;
+  packageId?: string;
+  title: string;
+  desc: string;
+  badge: string;
+  price: number;
+  imageCount: number;
+  sort: number;
+  enabled: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+// AI 生图额度
+export interface AIImageQuota {
+  _id?: string;
+  userId: string;
+  appUserId?: string;
+  nickname?: string;
+  phone?: string;
+  phoneMask?: string;
+  avatar?: string;
+  total: number;
+  used: number;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+// AI 生图模拟支付订单
+export interface AIImageOrder {
+  _id?: string;
+  orderNo?: string;
+  userId: string;
+  appUserId?: string;
+  nickname?: string;
+  phone?: string;
+  phoneMask?: string;
+  avatar?: string;
+  packageId?: string;
+  packageKey?: string;
+  title: string;
+  price: number;
+  imageCount: number;
+  beforeTotal?: number;
+  beforeUsed?: number;
+  beforeRemaining?: number;
+  afterTotal?: number;
+  afterUsed?: number;
+  afterRemaining?: number;
+  status: 'paid' | 'pending' | 'failed' | 'refunded' | string;
+  payType: 'mock' | string;
+  createdAt?: number;
+  paidAt?: number;
+}
+
 // 统计数据类型
 export interface DashboardStats {
   dau: number;
