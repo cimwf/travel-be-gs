@@ -15,7 +15,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   BarChart,
   Bar,
 } from 'recharts';
@@ -44,17 +43,13 @@ const Dashboard: React.FC = () => {
   // 用户统计
   const {
     todayFunnel,
-    loginRate,
-    registerRate,
-    overallRate,
-    todayActiveUsers,
-    weekActiveUsers,
-    monthActiveUsers,
-    activeTrend,
-    registerTrend,
+    visitToLoginRate,
+    todayVisitors,
+    todayLoggedInUsers,
+    todayConvertedVisitors,
+    todayAnonymousVisitors,
     loading: userLoading,
     fetchStats: fetchUserStats,
-    fetchTrend: fetchUserTrend,
   } = useUserStatsStore();
 
   // 其他统计
@@ -63,7 +58,6 @@ const Dashboard: React.FC = () => {
 
   const [viewTrendType, setViewTrendType] = useState<'daily' | 'weekly'>('daily');
   const [viewTrendDays, setViewTrendDays] = useState(7);
-  const [userTrendDays, setUserTrendDays] = useState(7);
 
   useEffect(() => {
     // 并行获取所有数据
@@ -72,7 +66,6 @@ const Dashboard: React.FC = () => {
       fetchViewTrend('daily', 7),
       fetchTopPlaces(10),
       fetchUserStats(),
-      fetchUserTrend(7),
       fetchFeedbacks({ page: 1, pageSize: 1 }),
       fetchAttractions({ page: 1, pageSize: 1, keyword: '', category: 'all', location: 'all' }),
     ]);
@@ -82,11 +75,6 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchViewTrend(viewTrendType, viewTrendType === 'daily' ? viewTrendDays : 8);
   }, [viewTrendType, viewTrendDays]);
-
-  // 切换用户趋势天数
-  useEffect(() => {
-    fetchUserTrend(userTrendDays);
-  }, [userTrendDays]);
 
   const loading = viewLoading || userLoading;
 
@@ -125,32 +113,32 @@ const Dashboard: React.FC = () => {
   // 用户统计卡片
   const userStatCards = [
     {
-      title: '今日日活',
-      value: (todayActiveUsers ?? 0).toLocaleString(),
-      subValue: 'DAU',
+      title: '今日访问人数',
+      value: (todayVisitors ?? 0).toLocaleString(),
+      subValue: '行程页去重 openId',
       icon: <UserOutlined />,
       color: 'var(--primary-500)',
     },
     {
-      title: '本周日活',
-      value: (weekActiveUsers ?? 0).toLocaleString(),
-      subValue: '近7天累计',
-      icon: <TeamOutlined />,
+      title: '今日登录人数',
+      value: (todayLoggedInUsers ?? 0).toLocaleString(),
+      subValue: `访问后登录 ${todayConvertedVisitors ?? 0}`,
+      icon: <LoginOutlined />,
       color: 'var(--success-500)',
     },
     {
-      title: '本月日活',
-      value: (monthActiveUsers ?? 0).toLocaleString(),
-      subValue: '近30天累计',
+      title: '未登录访问',
+      value: (todayAnonymousVisitors ?? 0).toLocaleString(),
+      subValue: '访问过但未登录',
       icon: <TeamOutlined />,
       color: 'var(--warning-500)',
     },
     {
-      title: '注册转化率',
-      value: `${overallRate}%`,
-      subValue: `登录 ${loginRate}% | 注册 ${registerRate}%`,
+      title: '访问登录转化率',
+      value: `${visitToLoginRate}%`,
+      subValue: `访问后登录 ${todayConvertedVisitors ?? 0}`,
       icon: <LoginOutlined />,
-      color: overallRate >= 30 ? 'var(--success-500)' : overallRate >= 15 ? 'var(--warning-500)' : 'var(--error-500)',
+      color: visitToLoginRate >= 30 ? 'var(--success-500)' : visitToLoginRate >= 15 ? 'var(--warning-500)' : 'var(--error-500)',
     },
   ];
 
@@ -178,10 +166,8 @@ const Dashboard: React.FC = () => {
 
   // 转化漏斗数据
   const funnelData = [
-    { name: '访问登录页', value: todayFunnel.loginPageVisit, color: '#1890ff' },
+    { name: '访问行程页', value: todayFunnel.tripListVisit, color: '#1890ff' },
     { name: '登录成功', value: todayFunnel.loginSuccess, color: '#52c41a' },
-    { name: '访问注册页', value: todayFunnel.registerPageVisit, color: '#faad14' },
-    { name: '注册成功', value: todayFunnel.registerSuccess, color: '#eb2f96' },
   ];
 
   return (
@@ -231,7 +217,7 @@ const Dashboard: React.FC = () => {
         {/* 图表区域 */}
         <Row gutter={16}>
           {/* 浏览趋势 */}
-          <Col xs={24} lg={12}>
+          <Col xs={24}>
             <Card
               className={styles.chartCard}
               title="浏览趋势"
@@ -301,62 +287,6 @@ const Dashboard: React.FC = () => {
               </ResponsiveContainer>
             </Card>
           </Col>
-
-          {/* 日活趋势 */}
-          <Col xs={24} lg={12}>
-            <Card
-              className={styles.chartCard}
-              title="日活 & 新增用户趋势"
-              extra={
-                <Segmented
-                  size="small"
-                  value={userTrendDays}
-                  onChange={(value) => setUserTrendDays(value as number)}
-                  options={[
-                    { label: '7天', value: 7 },
-                    { label: '14天', value: 14 },
-                    { label: '30天', value: 30 },
-                  ]}
-                />
-              }
-            >
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={activeTrend.map((item, index) => ({
-                  date: item.date,
-                  activeUser: item.count,
-                  newUser: registerTrend[index]?.count || 0,
-                }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" />
-                  <XAxis dataKey="date" stroke="var(--gray-500)" fontSize={12} />
-                  <YAxis stroke="var(--gray-500)" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid var(--gray-200)',
-                      borderRadius: 8,
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="activeUser"
-                    name="日活用户"
-                    stroke="var(--primary-500)"
-                    strokeWidth={2}
-                    dot={{ fill: 'var(--primary-500)', r: 3 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="newUser"
-                    name="新增用户"
-                    stroke="var(--success-500)"
-                    strokeWidth={2}
-                    dot={{ fill: 'var(--success-500)', r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card>
-          </Col>
         </Row>
 
         {/* 转化漏斗 & 热门景点 */}
@@ -398,16 +328,16 @@ const Dashboard: React.FC = () => {
 
               <div className={styles.funnelSummary}>
                 <div className={styles.funnelSummaryItem}>
-                  <span>登录转化率</span>
-                  <span className={styles.funnelSummaryValue}>{loginRate}%</span>
+                  <span>访问登录转化率</span>
+                  <span className={styles.funnelSummaryValue}>{visitToLoginRate}%</span>
                 </div>
                 <div className={styles.funnelSummaryItem}>
-                  <span>注册转化率</span>
-                  <span className={styles.funnelSummaryValue}>{registerRate}%</span>
+                  <span>访问后登录人数</span>
+                  <span className={styles.funnelSummaryValue}>{todayConvertedVisitors}</span>
                 </div>
                 <div className={styles.funnelSummaryItem}>
-                  <span>整体转化率</span>
-                  <span className={styles.funnelSummaryValue}>{overallRate}%</span>
+                  <span>未登录访问</span>
+                  <span className={styles.funnelSummaryValue}>{todayAnonymousVisitors}</span>
                 </div>
               </div>
             </Card>

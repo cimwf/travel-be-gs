@@ -14,6 +14,7 @@ import {
   MenuUnfoldOutlined,
   PictureOutlined,
   AppstoreOutlined,
+  FileImageOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
 import styles from './MainLayout.module.scss';
@@ -24,6 +25,7 @@ const menuItems = [
   { key: '/attractions/quickList', icon: <EnvironmentOutlined />, label: '景点列表' },
   { key: '/images', icon: <PictureOutlined />, label: '图片资源' },
   { key: '/banners', icon: <AppstoreOutlined />, label: 'Banner 管理' },
+  { key: '/ai-image-templates', icon: <FileImageOutlined />, label: 'AI 模板管理' },
   { key: '/hotels', icon: <HomeOutlined />, label: '酒店管理' },
   { key: '/orders', icon: <ShoppingCartOutlined />, label: '订单管理' },
   { key: '/feedback', icon: <MessageOutlined />, label: '用户反馈' },
@@ -67,6 +69,7 @@ const MainLayout: React.FC = () => {
       attractions: '景点管理',
       images: '图片资源',
       banners: 'Banner 管理',
+      'ai-image-templates': 'AI 模板管理',
       hotels: '酒店管理',
       orders: '订单管理',
       feedback: '用户反馈',

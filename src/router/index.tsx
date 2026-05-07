@@ -9,6 +9,7 @@ import AttractionQuickAdd from '@/pages/attractions/quickAdd';
 import AttractionQuickList from '@/pages/attractions/quickList';
 import Images from '@/pages/images';
 import Banners from '@/pages/banners';
+import AIImageTemplates from '@/pages/aiImageTemplates';
 import Hotels from '@/pages/hotels';
 import Orders from '@/pages/orders';
 import Feedback from '@/pages/feedback';
@@ -64,6 +65,10 @@ const router = createBrowserRouter([
       {
         path: 'banners',
         element: <Banners />,
+      },
+      {
+        path: 'ai-image-templates',
+        element: <AIImageTemplates />,
       },
       {
         path: 'hotels',

@@ -104,6 +104,26 @@ export interface AdminUser {
   lastLoginAt: string;
 }
 
+// AI 生图模板
+export interface AIImageTemplate {
+  _id?: string;
+  templateId?: string;
+  mode: 'text' | 'image';
+  title: string;
+  desc: string;
+  badge: string;
+  ratio: '1:1' | '3:4' | '4:3' | '9:16';
+  style: string;
+  prompt: string;
+  sort: number;
+  enabled: boolean;
+  likeCount?: number;
+  dislikeCount?: number;
+  userVote?: 'like' | 'dislike' | '';
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 // 统计数据类型
 export interface DashboardStats {
   dau: number;
