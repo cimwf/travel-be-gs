@@ -105,14 +105,17 @@ export interface AdminUser {
 }
 
 // AI 生图模板
+export type AIImageTemplateScene = '人像' | '旅行' | '穿搭' | '美食' | '活动';
+
 export interface AIImageTemplate {
   _id?: string;
   templateId?: string;
   mode: 'text' | 'image';
+  scene?: AIImageTemplateScene;
   title: string;
   desc: string;
   badge: string;
-  ratio: '1:1' | '3:4' | '4:3' | '9:16';
+  ratio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
   style: string;
   prompt: string;
   sort: number;

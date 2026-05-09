@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { getDb, initCloudBase } from '@/utils/cloudbase';
 import { defaultAIImageTemplates } from '@/mock/aiImageTemplates';
-import type { AIImageTemplate } from '@/types';
+import type { AIImageTemplate, AIImageTemplateScene } from '@/types';
 
 const COLLECTION = 'ai_image_templates';
 
@@ -14,6 +14,7 @@ interface AIImageTemplateState {
     page: number;
     pageSize: number;
     mode?: 'all' | 'text' | 'image';
+    scene?: 'all' | AIImageTemplateScene;
     keyword?: string;
   }) => Promise<{ list: AIImageTemplate[]; total: number }>;
   create: (data: Partial<AIImageTemplate>) => Promise<{ success: boolean; message: string }>;
@@ -22,12 +23,14 @@ interface AIImageTemplateState {
   toggleEnabled: (id: string, enabled: boolean) => Promise<{ success: boolean; message: string }>;
   updateSort: (id: string, sort: number) => Promise<{ success: boolean; message: string }>;
   seedDefaults: () => Promise<{ success: boolean; message: string; count: number }>;
+  clearAll: () => Promise<{ success: boolean; message: string; count: number }>;
 }
 
 function normalizeTemplate(data: Partial<AIImageTemplate>) {
   return {
     templateId: data.templateId || '',
     mode: data.mode === 'image' ? 'image' : 'text',
+    scene: data.scene || '',
     title: data.title || '',
     desc: data.desc || '',
     badge: data.badge || '',
@@ -44,7 +47,7 @@ export const useAIImageTemplateStore = create<AIImageTemplateState>((set, get) =
   loading: false,
   total: 0,
 
-  fetchList: async ({ page, pageSize, mode = 'all', keyword = '' }) => {
+  fetchList: async ({ page, pageSize, mode = 'all', scene = 'all', keyword = '' }) => {
     set({ loading: true });
 
     try {
@@ -54,6 +57,10 @@ export const useAIImageTemplateStore = create<AIImageTemplateState>((set, get) =
 
       if (mode !== 'all') {
         whereCond.mode = mode;
+      }
+
+      if (scene !== 'all') {
+        whereCond.scene = scene;
       }
 
       if (keyword) {
@@ -211,6 +218,35 @@ export const useAIImageTemplateStore = create<AIImageTemplateState>((set, get) =
     } catch (error) {
       console.error('Seed AI image templates error:', error);
       return { success: false, message: '初始化模板失败', count: 0 };
+    }
+  },
+
+  clearAll: async () => {
+    try {
+      await initCloudBase();
+      const db = getDb();
+
+      // 获取所有数据
+      const allData = await db.collection(COLLECTION).limit(1000).get();
+      const count = allData.data?.length || 0;
+
+      if (count === 0) {
+        return { success: true, message: '数据库已是空的', count: 0 };
+      }
+
+      // 逐条删除
+      for (const item of allData.data || []) {
+        if (item._id) {
+          await db.collection(COLLECTION).doc(item._id).remove();
+        }
+      }
+
+      set({ templates: [], total: 0 });
+
+      return { success: true, message: `已清空 ${count} 个模板`, count };
+    } catch (error) {
+      console.error('Clear all AI image templates error:', error);
+      return { success: false, message: '清空失败', count: 0 };
     }
   },
 }));

@@ -19,9 +19,10 @@ import {
   EditOutlined,
   PlusOutlined,
   ReloadOutlined,
+  ClearOutlined,
 } from '@ant-design/icons';
 import { useAIImageTemplateStore } from '@/stores/aiImageTemplates';
-import type { AIImageTemplate } from '@/types';
+import type { AIImageTemplate, AIImageTemplateScene } from '@/types';
 import styles from './index.module.scss';
 
 const { TextArea } = Input;
@@ -38,6 +39,23 @@ const formModeOptions = [
 ];
 
 const ratioOptions = ['1:1', '3:4', '4:3', '9:16'].map((value) => ({ label: value, value }));
+
+const sceneOptions = [
+  { label: '全部', value: 'all' },
+  { label: '人像', value: '人像' },
+  { label: '旅行', value: '旅行' },
+  { label: '穿搭', value: '穿搭' },
+  { label: '美食', value: '美食' },
+  { label: '活动', value: '活动' },
+];
+
+const formSceneOptions = [
+  { label: '人像', value: '人像' },
+  { label: '旅行', value: '旅行' },
+  { label: '穿搭', value: '穿搭' },
+  { label: '美食', value: '美食' },
+  { label: '活动', value: '活动' },
+];
 
 const styleOptions = [
   '旅行海报',
@@ -69,23 +87,25 @@ const AIImageTemplatesPage: React.FC = () => {
     delete: deleteTemplate,
     toggleEnabled,
     seedDefaults,
+    clearAll,
   } = useAIImageTemplateStore();
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [mode, setMode] = useState<'all' | 'text' | 'image'>('all');
+  const [scene, setScene] = useState<'all' | AIImageTemplateScene>('all');
   const [keyword, setKeyword] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<AIImageTemplate | null>(null);
   const [form] = Form.useForm();
 
   const loadData = async () => {
-    await fetchList({ page, pageSize, mode, keyword });
+    await fetchList({ page, pageSize, mode, scene, keyword });
   };
 
   useEffect(() => {
     loadData();
-  }, [page, pageSize, mode, keyword]);
+  }, [page, pageSize, mode, scene, keyword]);
 
   const handleAdd = () => {
     setEditingTemplate(null);
@@ -156,6 +176,17 @@ const AIImageTemplatesPage: React.FC = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    const result = await clearAll();
+    if (result.success) {
+      message.success(result.message);
+      setPage(1);
+      loadData();
+    } else {
+      message.error(result.message);
+    }
+  };
+
   const columns = [
     {
       title: '模板',
@@ -188,6 +219,26 @@ const AIImageTemplatesPage: React.FC = () => {
           {value === 'image' ? '图生图' : '文生图'}
         </Tag>
       ),
+    },
+    {
+      title: '场景',
+      dataIndex: 'scene',
+      key: 'scene',
+      width: 90,
+      render: (value: AIImageTemplate['scene']) => {
+        const colorMap: Record<string, string> = {
+          '人像': 'purple',
+          '旅行': 'cyan',
+          '穿搭': 'orange',
+          '美食': 'volcano',
+          '活动': 'blue',
+        };
+        return value ? (
+          <Tag color={colorMap[value] || 'default'}>{value}</Tag>
+        ) : (
+          <Tag>其他</Tag>
+        );
+      },
     },
     {
       title: '比例',
@@ -286,6 +337,15 @@ const AIImageTemplatesPage: React.FC = () => {
                 setPage(1);
               }}
             />
+            <Select
+              value={scene}
+              options={sceneOptions}
+              style={{ width: 120 }}
+              onChange={(value) => {
+                setScene(value);
+                setPage(1);
+              }}
+            />
             <Input.Search
               allowClear
               placeholder="搜索模板标题"
@@ -297,6 +357,15 @@ const AIImageTemplatesPage: React.FC = () => {
             />
           </div>
           <Space>
+            <Popconfirm
+              title="确定清空所有模板？此操作不可恢复！"
+              okText="确定"
+              cancelText="取消"
+              okButtonProps={{ danger: true }}
+              onConfirm={handleClearAll}
+            >
+              <Button danger icon={<ClearOutlined />}>一键清空</Button>
+            </Popconfirm>
             <Popconfirm
               title="会追加一批默认模板，确定初始化？"
               okText="确定"
@@ -346,6 +415,10 @@ const AIImageTemplatesPage: React.FC = () => {
             rules={[{ required: true, message: '请选择模板类型' }]}
           >
             <Select options={formModeOptions} />
+          </Form.Item>
+
+          <Form.Item name="scene" label="适用场景">
+            <Select allowClear placeholder="不限场景" options={formSceneOptions} />
           </Form.Item>
 
           <Form.Item
