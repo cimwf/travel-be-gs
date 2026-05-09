@@ -12,6 +12,7 @@ import Banners from '@/pages/banners';
 import AIImageTemplates from '@/pages/aiImageTemplates';
 import AIImagePackages from '@/pages/aiImagePackages';
 import AIImageQuotas from '@/pages/aiImageQuotas';
+import AIImageChannels from '@/pages/aiImageChannels';
 import Hotels from '@/pages/hotels';
 import Orders from '@/pages/orders';
 import Feedback from '@/pages/feedback';
@@ -79,6 +80,10 @@ const router = createBrowserRouter([
       {
         path: 'ai-image-quotas',
         element: <AIImageQuotas />,
+      },
+      {
+        path: 'ai-image-channels',
+        element: <AIImageChannels />,
       },
       {
         path: 'hotels',

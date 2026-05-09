@@ -135,9 +135,24 @@ export interface AIImagePackage {
   desc: string;
   badge: string;
   price: number;
+  discount?: number;
   imageCount: number;
   sort: number;
   enabled: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+// AI 生图渠道
+export interface AIImageChannel {
+  _id?: string;
+  channelId: string;
+  name: string;
+  remark: string;
+  enabled: boolean;
+  callCount: number;
+  successCount: number;
+  failCount: number;
   createdAt?: number;
   updatedAt?: number;
 }

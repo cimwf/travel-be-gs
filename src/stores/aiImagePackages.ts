@@ -18,6 +18,14 @@ interface AIImagePackageState {
   seedDefaults: () => Promise<{ success: boolean; message: string; count: number }>;
 }
 
+function normalizeDiscount(value?: number) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 10;
+  }
+
+  return Math.min(10, Math.max(0.1, Math.round(value * 10) / 10));
+}
+
 function normalizePackage(data: Partial<AIImagePackage>) {
   return {
     packageId: data.packageId || '',
@@ -25,9 +33,17 @@ function normalizePackage(data: Partial<AIImagePackage>) {
     desc: data.desc || '',
     badge: data.badge || '',
     price: typeof data.price === 'number' ? data.price : 0,
+    discount: normalizeDiscount(data.discount),
     imageCount: typeof data.imageCount === 'number' ? data.imageCount : 0,
     sort: typeof data.sort === 'number' ? data.sort : 1,
     enabled: data.enabled !== false,
+  };
+}
+
+function normalizePackageRecord(item: AIImagePackage): AIImagePackage {
+  return {
+    ...item,
+    discount: normalizeDiscount(item.discount),
   };
 }
 
@@ -62,7 +78,7 @@ export const useAIImagePackageStore = create<AIImagePackageState>((set, get) => 
         .limit(pageSize)
         .get();
 
-      const list = (result.data || []) as AIImagePackage[];
+      const list = ((result.data || []) as AIImagePackage[]).map((item) => normalizePackageRecord(item));
       const total = countResult.total || 0;
       set({ packages: list, total, loading: false });
       return { list, total };

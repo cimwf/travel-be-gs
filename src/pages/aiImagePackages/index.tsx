@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Button,
   Card,
@@ -23,6 +23,27 @@ import { useAIImagePackageStore } from '@/stores/aiImagePackages';
 import type { AIImagePackage } from '@/types';
 import styles from './index.module.scss';
 
+function formatPrice(value?: number) {
+  return `¥${Number(value || 0).toFixed(1)}`;
+}
+
+function normalizeDiscount(value?: number) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 10;
+  }
+
+  return Math.min(10, Math.max(0.1, Math.round(value * 10) / 10));
+}
+
+function formatDiscount(value?: number) {
+  return `${normalizeDiscount(value).toFixed(1)} 折`;
+}
+
+function getDiscountedPrice(price?: number, discount?: number) {
+  const basePrice = Number(price || 0);
+  return Number((basePrice * normalizeDiscount(discount) / 10).toFixed(1));
+}
+
 const AIImagePackagesPage: React.FC = () => {
   const {
     packages,
@@ -43,13 +64,13 @@ const AIImagePackagesPage: React.FC = () => {
   const [editingPackage, setEditingPackage] = useState<AIImagePackage | null>(null);
   const [form] = Form.useForm();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     await fetchList({ page, pageSize, keyword });
-  };
+  }, [fetchList, page, pageSize, keyword]);
 
   useEffect(() => {
     loadData();
-  }, [page, pageSize, keyword]);
+  }, [loadData]);
 
   const handleAdd = () => {
     setEditingPackage(null);
@@ -60,6 +81,7 @@ const AIImagePackagesPage: React.FC = () => {
       desc: '适合集中测试和日常创作，支付后立即到账。',
       badge: '推荐',
       price: 19.9,
+      discount: 10,
       imageCount: 50,
       sort: total + 1,
       enabled: true,
@@ -69,7 +91,10 @@ const AIImagePackagesPage: React.FC = () => {
 
   const handleEdit = (record: AIImagePackage) => {
     setEditingPackage(record);
-    form.setFieldsValue(record);
+    form.setFieldsValue({
+      ...record,
+      discount: record.discount ?? 10,
+    });
     setModalOpen(true);
   };
 
@@ -147,8 +172,29 @@ const AIImagePackagesPage: React.FC = () => {
       title: '价格',
       dataIndex: 'price',
       key: 'price',
-      width: 100,
-      render: (value: number) => `¥${Number(value || 0).toFixed(1)}`,
+      width: 130,
+      render: (value: number, record: AIImagePackage) => {
+        const discount = normalizeDiscount(record.discount);
+        const discountedPrice = getDiscountedPrice(value, discount);
+
+        return (
+          <div>
+            <div>{formatPrice(value)}</div>
+            {discount < 10 && (
+              <div className={styles.descText}>
+                折后 {formatPrice(discountedPrice)}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: '折扣',
+      dataIndex: 'discount',
+      key: 'discount',
+      width: 90,
+      render: (value: number) => formatDiscount(value),
     },
     {
       title: '图片数',
@@ -288,6 +334,14 @@ const AIImagePackagesPage: React.FC = () => {
             rules={[{ required: true, message: '请输入价格' }]}
           >
             <InputNumber min={0} precision={1} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="discount"
+            label="折扣"
+            rules={[{ required: true, message: '请输入折扣' }]}
+          >
+            <InputNumber min={0.1} max={10} step={0.1} precision={1} style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item
