@@ -11,6 +11,7 @@ import {
   Switch,
   Table,
   Tag,
+  Tooltip,
   Typography,
   message,
 } from 'antd';
@@ -20,6 +21,8 @@ import {
   EditOutlined,
   PlusOutlined,
   ReloadOutlined,
+  StarFilled,
+  StarOutlined,
 } from '@ant-design/icons';
 import { generateAIImageChannelId, useAIImageChannelStore } from '@/stores/aiImageChannels';
 import type { AIImageChannel } from '@/types';
@@ -108,6 +111,7 @@ const AIImageChannelsPage: React.FC = () => {
     update,
     delete: deleteChannel,
     toggleEnabled,
+    setDefault,
   } = useAIImageChannelStore();
 
   const [page, setPage] = useState(1);
@@ -136,6 +140,7 @@ const AIImageChannelsPage: React.FC = () => {
       callCount: 0,
       successCount: 0,
       failCount: 0,
+      isDefault: false,
     });
     setModalOpen(true);
   };
@@ -193,6 +198,19 @@ const AIImageChannelsPage: React.FC = () => {
     const result = await toggleEnabled(id, enabled);
     if (result.success) {
       message.success(result.message);
+      loadData();
+    } else {
+      message.error(result.message);
+    }
+  };
+
+  const handleSetDefault = async (record: AIImageChannel) => {
+    if (!record._id || record.isDefault) return;
+
+    const result = await setDefault(record._id);
+    if (result.success) {
+      message.success(result.message);
+      loadData();
     } else {
       message.error(result.message);
     }
@@ -210,6 +228,7 @@ const AIImageChannelsPage: React.FC = () => {
             <Tag color={record.enabled === false ? 'default' : 'green'}>
               {record.enabled === false ? '停用' : '启用'}
             </Tag>
+            {record.isDefault && <Tag color="gold">默认</Tag>}
           </Space>
           <div className={styles.descText}>{record.remark || '-'}</div>
         </div>
@@ -251,6 +270,24 @@ const AIImageChannelsPage: React.FC = () => {
       key: 'updatedAt',
       width: 180,
       render: (value: number) => formatTime(value),
+    },
+    {
+      title: '默认',
+      dataIndex: 'isDefault',
+      key: 'isDefault',
+      width: 90,
+      render: (isDefault: boolean, record: AIImageChannel) => (
+        <Tooltip title={isDefault ? '当前默认渠道' : '设为默认渠道'}>
+          <Button
+            type={isDefault ? 'primary' : 'text'}
+            size="small"
+            shape="circle"
+            icon={isDefault ? <StarFilled /> : <StarOutlined />}
+            disabled={isDefault}
+            onClick={() => handleSetDefault(record)}
+          />
+        </Tooltip>
+      ),
     },
     {
       title: '启用',
@@ -385,6 +422,10 @@ const AIImageChannelsPage: React.FC = () => {
 
           <Form.Item name="enabled" label="启用状态" valuePropName="checked">
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+          </Form.Item>
+
+          <Form.Item name="isDefault" label="默认渠道" valuePropName="checked">
+            <Switch checkedChildren="默认" unCheckedChildren="普通" />
           </Form.Item>
         </Form>
       </Modal>

@@ -150,6 +150,7 @@ export interface AIImageChannel {
   name: string;
   remark: string;
   enabled: boolean;
+  isDefault: boolean;
   callCount: number;
   successCount: number;
   failCount: number;

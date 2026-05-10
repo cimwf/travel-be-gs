@@ -15,6 +15,7 @@ interface AIImageChannelState {
   update: (id: string, data: Partial<AIImageChannel>) => Promise<{ success: boolean; message: string }>;
   delete: (id: string) => Promise<{ success: boolean; message: string }>;
   toggleEnabled: (id: string, enabled: boolean) => Promise<{ success: boolean; message: string }>;
+  setDefault: (id: string) => Promise<{ success: boolean; message: string }>;
 }
 
 function escapeRegExp(value: string) {
@@ -36,6 +37,7 @@ function normalizeChannel(data: Partial<AIImageChannel>) {
     name: String(data.name || '').trim(),
     remark: String(data.remark || '').trim(),
     enabled: data.enabled !== false,
+    isDefault: data.isDefault === true,
     callCount: normalizeNumber(data.callCount),
     successCount: normalizeNumber(data.successCount),
     failCount: normalizeNumber(data.failCount),
@@ -52,7 +54,10 @@ function normalizeChannelRecord(item: Partial<AIImageChannel>): AIImageChannel {
 }
 
 function sortChannels(list: AIImageChannel[]) {
-  return list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  return list.sort((a, b) => {
+    if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  });
 }
 
 async function channelIdExists(db: ReturnType<typeof getDb>, channelId: string, ignoreId = '') {
@@ -62,6 +67,22 @@ async function channelIdExists(db: ReturnType<typeof getDb>, channelId: string, 
     .get();
   const existed = result.data && result.data[0] ? result.data[0] as AIImageChannel : null;
   return Boolean(existed && existed._id !== ignoreId);
+}
+
+async function clearOtherDefaultChannels(db: ReturnType<typeof getDb>, currentId = '') {
+  const result = await db.collection(COLLECTION)
+    .where({ isDefault: true })
+    .limit(200)
+    .get();
+
+  const updateTasks = ((result.data || []) as AIImageChannel[])
+    .filter((item) => item._id && item._id !== currentId)
+    .map((item) => db.collection(COLLECTION).doc(item._id as string).update({
+      isDefault: false,
+      updatedAt: Date.now(),
+    }));
+
+  await Promise.all(updateTasks);
 }
 
 export function generateAIImageChannelId() {
@@ -117,7 +138,7 @@ export const useAIImageChannelStore = create<AIImageChannelState>((set, get) => 
         .limit(pageSize)
         .get();
 
-      const list = ((result.data || []) as AIImageChannel[]).map((item) => normalizeChannelRecord(item));
+      const list = sortChannels(((result.data || []) as AIImageChannel[]).map((item) => normalizeChannelRecord(item)));
       const total = countResult.total || 0;
       set({ channels: list, total, loading: false });
       return { list, total };
@@ -147,8 +168,13 @@ export const useAIImageChannelStore = create<AIImageChannelState>((set, get) => 
         return { success: false, message: '渠道 ID 已存在' };
       }
 
+      if (channel.isDefault) {
+        await clearOtherDefaultChannels(db);
+      }
+
       await db.collection(COLLECTION).add({
         ...channel,
+        enabled: channel.isDefault ? true : channel.enabled,
         createdAt: now,
         updatedAt: now,
       });
@@ -178,8 +204,13 @@ export const useAIImageChannelStore = create<AIImageChannelState>((set, get) => 
         return { success: false, message: '渠道 ID 已存在' };
       }
 
+      if (channel.isDefault) {
+        await clearOtherDefaultChannels(db, id);
+      }
+
       await db.collection(COLLECTION).doc(id).update({
         ...channel,
+        enabled: channel.isDefault ? true : channel.enabled,
         updatedAt: Date.now(),
       });
 
@@ -206,19 +237,49 @@ export const useAIImageChannelStore = create<AIImageChannelState>((set, get) => 
     try {
       await initCloudBase();
       const db = getDb();
-      await db.collection(COLLECTION).doc(id).update({
+      const updateData: Partial<AIImageChannel> & { updatedAt: number } = {
         enabled,
         updatedAt: Date.now(),
-      });
+      };
+
+      if (!enabled) {
+        updateData.isDefault = false;
+      }
+
+      await db.collection(COLLECTION).doc(id).update(updateData);
       set({
         channels: get().channels.map((item) => (
-          item._id === id ? { ...item, enabled } : item
+          item._id === id ? { ...item, enabled, isDefault: enabled ? item.isDefault : false } : item
         )),
       });
       return { success: true, message: enabled ? '已启用' : '已禁用' };
     } catch (error) {
       console.error('Toggle AI image channel error:', error);
       return { success: false, message: '操作失败' };
+    }
+  },
+
+  setDefault: async (id) => {
+    try {
+      await initCloudBase();
+      const db = getDb();
+      await clearOtherDefaultChannels(db, id);
+      await db.collection(COLLECTION).doc(id).update({
+        isDefault: true,
+        enabled: true,
+        updatedAt: Date.now(),
+      });
+      set({
+        channels: sortChannels(get().channels.map((item) => (
+          item._id === id
+            ? { ...item, isDefault: true, enabled: true }
+            : { ...item, isDefault: false }
+        ))),
+      });
+      return { success: true, message: '已设为默认渠道' };
+    } catch (error) {
+      console.error('Set default AI image channel error:', error);
+      return { success: false, message: '设置失败' };
     }
   },
 }));
