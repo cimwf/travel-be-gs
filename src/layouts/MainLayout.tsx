@@ -18,6 +18,7 @@ import {
   CreditCardOutlined,
   DatabaseOutlined,
   ApiOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
 import styles from './MainLayout.module.scss';
@@ -32,6 +33,7 @@ const menuItems = [
   { key: '/ai-image-packages', icon: <CreditCardOutlined />, label: 'AI 套餐管理' },
   { key: '/ai-image-quotas', icon: <DatabaseOutlined />, label: 'AI 额度管理' },
   { key: '/ai-image-channels', icon: <ApiOutlined />, label: 'AI 渠道管理' },
+  { key: '/ai-image-references', icon: <FolderOpenOutlined />, label: 'AI 参考图' },
   { key: '/hotels', icon: <HomeOutlined />, label: '酒店管理' },
   { key: '/orders', icon: <ShoppingCartOutlined />, label: '订单管理' },
   { key: '/feedback', icon: <MessageOutlined />, label: '用户反馈' },
@@ -79,6 +81,7 @@ const MainLayout: React.FC = () => {
       'ai-image-packages': 'AI 套餐管理',
       'ai-image-quotas': 'AI 额度管理',
       'ai-image-channels': 'AI 渠道管理',
+      'ai-image-references': 'AI 参考图',
       hotels: '酒店管理',
       orders: '订单管理',
       feedback: '用户反馈',

@@ -65,6 +65,23 @@ export const testDatabase = async () => {
 // 获取数据库引用
 export const getDb = () => app.database();
 
+export const callCloudFunction = async <T = Record<string, unknown>>(
+  action: string,
+  data: Record<string, unknown> = {}
+): Promise<T> => {
+  await initCloudBase();
+
+  const result = await app.callFunction({
+    name: 'api',
+    data: {
+      action,
+      data,
+    },
+  });
+
+  return ((result as { result?: T }).result || {}) as T;
+};
+
 // 上传文件到云存储
 export const uploadFile = async (file: File): Promise<{ success: boolean; url: string; fileID: string; message: string }> => {
   try {
