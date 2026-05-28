@@ -28,7 +28,8 @@ function normalizeDiscount(value?: number) {
 
 function normalizePackage(data: Partial<AIImagePackage>) {
   return {
-    packageId: data.packageId || '',
+    packageId: String(data.packageId || '').trim(),
+    productId: String(data.productId || '').trim(),
     title: data.title || '',
     desc: data.desc || '',
     badge: data.badge || '',

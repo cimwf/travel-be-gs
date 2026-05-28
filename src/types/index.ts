@@ -131,6 +131,7 @@ export interface AIImageTemplate {
 export interface AIImagePackage {
   _id?: string;
   packageId?: string;
+  productId?: string;
   title: string;
   desc: string;
   badge: string;
@@ -173,7 +174,7 @@ export interface AIImageQuota {
   updatedAt?: number;
 }
 
-// AI 生图模拟支付订单
+// AI 生图支付订单
 export interface AIImageOrder {
   _id?: string;
   orderNo?: string;
@@ -194,6 +195,13 @@ export interface AIImageOrder {
   afterTotal?: number;
   afterUsed?: number;
   afterRemaining?: number;
+  productId?: string;
+  goodsPrice?: number;
+  payEnv?: 0 | 1 | number;
+  orderType?: number;
+  wxOrderStatus?: number;
+  wxEnvType?: number;
+  confirmingAt?: number;
   status: 'paid' | 'pending' | 'failed' | 'refunded' | string;
   payType: 'mock' | string;
   createdAt?: number;

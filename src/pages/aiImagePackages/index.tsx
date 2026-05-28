@@ -76,13 +76,14 @@ const AIImagePackagesPage: React.FC = () => {
     setEditingPackage(null);
     form.resetFields();
     form.setFieldsValue({
-      packageId: 'standard-50',
-      title: 'AI 生图 50 张',
+      packageId: 'standard-20',
+      productId: 'image_credits_20',
+      title: 'AI 生图 20 张',
       desc: '适合集中测试和日常创作，支付后立即到账。',
       badge: '推荐',
-      price: 19.9,
+      price: 9.9,
       discount: 10,
-      imageCount: 50,
+      imageCount: 20,
       sort: total + 1,
       enabled: true,
     });
@@ -167,6 +168,13 @@ const AIImagePackagesPage: React.FC = () => {
       key: 'packageId',
       width: 140,
       render: (value: string) => value || '-',
+    },
+    {
+      title: '道具 ID',
+      dataIndex: 'productId',
+      key: 'productId',
+      width: 170,
+      render: (value: string) => value || <Tag color="red">未配置</Tag>,
     },
     {
       title: '价格',
@@ -310,6 +318,21 @@ const AIImagePackagesPage: React.FC = () => {
         <Form form={form} layout="vertical">
           <Form.Item name="packageId" label="套餐标识">
             <Input placeholder="例如：standard-50，用于初始化去重" maxLength={40} showCount />
+          </Form.Item>
+
+          <Form.Item
+            name="productId"
+            label="微信虚拟支付道具 ID"
+            extra="必须与微信小程序虚拟支付后台的道具 ID 完全一致，否则不能拉起支付。"
+            rules={[
+              { required: true, message: '请输入微信虚拟支付道具 ID' },
+              {
+                pattern: /^[A-Za-z0-9_-]{1,20}$/,
+                message: '仅支持英文、数字、下划线、短横线，最多 20 位',
+              },
+            ]}
+          >
+            <Input placeholder="例如：image_credits_20" maxLength={20} showCount />
           </Form.Item>
 
           <Form.Item

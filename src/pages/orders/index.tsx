@@ -8,10 +8,35 @@ import styles from './index.module.scss';
 const statusOptions = [
   { label: '全部状态', value: 'all' },
   { label: '已支付', value: 'paid' },
-  { label: '待支付', value: 'pending' },
+  { label: '待支付', value: 'pending_payment' },
+  { label: '确认中/需核查', value: 'confirming_payment' },
   { label: '已退款', value: 'refunded' },
   { label: '失败', value: 'failed' },
 ];
+
+const statusMeta: Record<string, { color: string; text: string }> = {
+  pending: { color: 'default', text: '待支付' },
+  pending_payment: { color: 'default', text: '待支付' },
+  confirming_payment: { color: 'processing', text: '确认中/需核查' },
+  paid: { color: 'success', text: '已支付' },
+  refunded: { color: 'warning', text: '已退款' },
+  failed: { color: 'error', text: '失败' },
+};
+
+const payTypeMeta: Record<string, { color: string; text: string }> = {
+  mock: { color: 'blue', text: '模拟支付' },
+  virtual_sandbox: { color: 'orange', text: '虚拟支付沙箱' },
+  virtual_live: { color: 'green', text: '虚拟支付现网' },
+  iap: { color: 'purple', text: 'iOS IAP' },
+};
+
+// 微信虚拟支付订单类型，0=Android普通，7=iOS苹果IAP
+function getOrderTypeLabel(orderType?: number): string | null {
+  if (orderType === 7) return 'iOS IAP';
+  if (orderType === 0) return null; // 普通虚拟支付，不额外标注
+  if (typeof orderType === 'number') return `order_type=${orderType}`;
+  return null;
+}
 
 function formatTime(value?: number) {
   return value ? new Date(value).toLocaleString() : '-';
@@ -97,34 +122,43 @@ const Orders: React.FC = () => {
       key: 'status',
       width: 100,
       render: (value: string) => {
-        const colorMap: Record<string, string> = {
-          pending: 'default',
-          paid: 'success',
-          refunded: 'warning',
-          failed: 'error',
-        };
-        const textMap: Record<string, string> = {
-          pending: '待支付',
-          paid: '已支付',
-          refunded: '已退款',
-          failed: '失败',
-        };
-        return <Tag color={colorMap[value] || 'default'}>{textMap[value] || value || '-'}</Tag>;
+        const meta = statusMeta[value] || { color: 'default', text: value || '-' };
+        return <Tag color={meta.color}>{meta.text}</Tag>;
       },
     },
     {
       title: '支付',
       dataIndex: 'payType',
       key: 'payType',
-      width: 100,
-      render: (value: string) => <Tag color={value === 'mock' ? 'blue' : 'default'}>{value === 'mock' ? '模拟支付' : value || '-'}</Tag>,
+      width: 130,
+      render: (value: string, record: AIImageOrder) => {
+        const orderTypeLabel = getOrderTypeLabel(record.orderType);
+        // iOS IAP 订单优先用 IAP 标签展示
+        const meta = orderTypeLabel === 'iOS IAP'
+          ? payTypeMeta.iap
+          : (payTypeMeta[value] || { color: 'default', text: value || '-' });
+        return (
+          <div>
+            <Tag color={meta.color}>{meta.text}</Tag>
+            {orderTypeLabel && orderTypeLabel !== 'iOS IAP' && (
+              <Tag color="default" style={{ marginTop: 2 }}>{orderTypeLabel}</Tag>
+            )}
+            {typeof record.payEnv === 'number' && orderTypeLabel !== 'iOS IAP' && (
+              <div className={styles.muted}>{record.payEnv === 0 ? '现网' : '沙箱'}</div>
+            )}
+            {orderTypeLabel === 'iOS IAP' && (
+              <div className={styles.muted}>结算走 Apple</div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: '支付时间',
       dataIndex: 'paidAt',
       key: 'paidAt',
       width: 180,
-      render: (value: number, record: AIImageOrder) => formatTime(value || record.createdAt),
+      render: (value: number, record: AIImageOrder) => formatTime(value || record.confirmingAt || record.createdAt),
     },
   ];
 
