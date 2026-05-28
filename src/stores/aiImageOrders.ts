@@ -30,6 +30,8 @@ interface AIImageOrderState {
     keyword?: string;
     status?: string;
   }) => Promise<{ list: AIImageOrder[]; total: number }>;
+  delete: (id: string) => Promise<{ success: boolean; message: string }>;
+  updateStatus: (id: string, status: string) => Promise<{ success: boolean; message: string }>;
 }
 
 function escapeRegExp(value: string) {
@@ -210,6 +212,48 @@ export const useAIImageOrderStore = create<AIImageOrderState>((set) => ({
       console.error('Fetch AI image orders error:', error);
       set({ orders: [], total: 0, loading: false });
       return { list: [], total: 0 };
+    }
+  },
+
+  delete: async (id) => {
+    if (!id) return { success: false, message: '订单 ID 不能为空' };
+
+    try {
+      await initCloudBase();
+      const db = getDb();
+      await db.collection(COLLECTION).doc(id).remove();
+      return { success: true, message: '删除成功' };
+    } catch (error) {
+      console.error('Delete AI image order error:', error);
+      return { success: false, message: '删除失败' };
+    }
+  },
+
+  updateStatus: async (id, status) => {
+    if (!id) return { success: false, message: '订单 ID 不能为空' };
+    if (!status) return { success: false, message: '订单状态不能为空' };
+
+    try {
+      await initCloudBase();
+      const db = getDb();
+      const now = Date.now();
+      const data: Record<string, unknown> = {
+        status,
+        updatedAt: now,
+      };
+
+      if (status === 'paid') {
+        data.paidAt = now;
+        data.confirmingAt = 0;
+      } else if (status !== 'confirming_payment') {
+        data.confirmingAt = 0;
+      }
+
+      await db.collection(COLLECTION).doc(id).update(data);
+      return { success: true, message: '状态已更新' };
+    } catch (error) {
+      console.error('Update AI image order status error:', error);
+      return { success: false, message: '状态更新失败' };
     }
   },
 }));

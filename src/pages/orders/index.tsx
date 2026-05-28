@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Input, Select, Tag } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Button, Card, Descriptions, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
+import { DeleteOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons';
 import { useAIImageOrderStore } from '@/stores/aiImageOrders';
 import type { AIImageOrder } from '@/types';
 import styles from './index.module.scss';
 
 const statusOptions = [
   { label: '全部状态', value: 'all' },
+  { label: '已支付', value: 'paid' },
+  { label: '待支付', value: 'pending_payment' },
+  { label: '确认中/需核查', value: 'confirming_payment' },
+  { label: '已退款', value: 'refunded' },
+  { label: '失败', value: 'failed' },
+];
+
+const manualStatusOptions = [
   { label: '已支付', value: 'paid' },
   { label: '待支付', value: 'pending_payment' },
   { label: '确认中/需核查', value: 'confirming_payment' },
@@ -47,14 +55,65 @@ function formatPrice(value?: number) {
 }
 
 const Orders: React.FC = () => {
-  const { orders, loading, total, fetchList } = useAIImageOrderStore();
+  const { orders, loading, total, fetchList, delete: deleteOrder, updateStatus } = useAIImageOrderStore();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('all');
+  const [editingOrder, setEditingOrder] = useState<AIImageOrder | null>(null);
+  const [editingStatus, setEditingStatus] = useState('');
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const loadData = async () => {
     await fetchList({ page, pageSize, keyword, status });
+  };
+
+  const handleDelete = async (id?: string) => {
+    if (!id) {
+      message.error('订单 ID 不存在，无法删除');
+      return;
+    }
+
+    const result = await deleteOrder(id);
+    if (result.success) {
+      message.success(result.message);
+      await loadData();
+    } else {
+      message.error(result.message);
+    }
+  };
+
+  const openEditModal = (record: AIImageOrder) => {
+    setEditingOrder(record);
+    setEditingStatus(record.status || 'pending_payment');
+  };
+
+  const closeEditModal = () => {
+    if (savingStatus) return;
+    setEditingOrder(null);
+    setEditingStatus('');
+  };
+
+  const handleSaveStatus = async () => {
+    if (!editingOrder?._id) {
+      message.error('订单 ID 不存在，无法修改状态');
+      return;
+    }
+
+    setSavingStatus(true);
+    try {
+      const result = await updateStatus(editingOrder._id, editingStatus);
+      if (result.success) {
+        message.success(result.message);
+        setEditingOrder(null);
+        setEditingStatus('');
+        await loadData();
+      } else {
+        message.error(result.message);
+      }
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   useEffect(() => {
@@ -160,6 +219,31 @@ const Orders: React.FC = () => {
       width: 180,
       render: (value: number, record: AIImageOrder) => formatTime(value || record.confirmingAt || record.createdAt),
     },
+    {
+      title: '操作',
+      key: 'action',
+      width: 130,
+      fixed: 'right' as const,
+      render: (_: unknown, record: AIImageOrder) => (
+        <Space size={4}>
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEditModal(record)}>
+            编辑
+          </Button>
+          <Popconfirm
+            title="确定删除这个订单？"
+            description="删除后仅移除后台订单记录，不会自动退款，也不会回滚用户额度。"
+            okText="删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleDelete(record._id)}
+          >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -198,6 +282,7 @@ const Orders: React.FC = () => {
           dataSource={orders}
           rowKey={(record) => record._id || record.orderNo || `${record.userId}_${record.createdAt || ''}`}
           loading={loading}
+          scroll={{ x: 1360 }}
           pagination={{
             current: page,
             pageSize,
@@ -211,6 +296,43 @@ const Orders: React.FC = () => {
           }}
         />
       </Card>
+
+      <Modal
+        title="编辑订单"
+        open={Boolean(editingOrder)}
+        onOk={handleSaveStatus}
+        onCancel={closeEditModal}
+        confirmLoading={savingStatus}
+        okText="保存"
+        cancelText="取消"
+      >
+        {editingOrder && (
+          <>
+            <Descriptions column={1} size="small" bordered style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="订单号">{editingOrder.orderNo || '-'}</Descriptions.Item>
+              <Descriptions.Item label="用户">{editingOrder.nickname || editingOrder.userId || '-'}</Descriptions.Item>
+              <Descriptions.Item label="套餐">{editingOrder.title || '-'}</Descriptions.Item>
+              <Descriptions.Item label="金额">{formatPrice(editingOrder.price)}</Descriptions.Item>
+              <Descriptions.Item label="当前状态">
+                <Tag color={statusMeta[editingOrder.status]?.color || 'default'}>
+                  {statusMeta[editingOrder.status]?.text || editingOrder.status || '-'}
+                </Tag>
+              </Descriptions.Item>
+            </Descriptions>
+            <div>
+              <div className={styles.muted} style={{ marginBottom: 8 }}>
+                修改订单状态不会自动退款，也不会自动加/扣用户次数。请先确认额度已手动处理。
+              </div>
+              <Select
+                value={editingStatus}
+                options={manualStatusOptions}
+                style={{ width: '100%' }}
+                onChange={setEditingStatus}
+              />
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 };
