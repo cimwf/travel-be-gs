@@ -58,6 +58,7 @@ const formSceneOptions = [
 ];
 
 const styleOptions = [
+  '默认风格',
   '旅行海报',
   '写实摄影',
   '韩系写真',
