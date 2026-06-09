@@ -1,30 +1,45 @@
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Spin } from 'antd';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AuthGuard from '@/components/AuthGuard';
 import MainLayout from '@/layouts/MainLayout';
-import Login from '@/pages/login';
-import Dashboard from '@/pages/dashboard';
-import AttractionsList from '@/pages/attractions';
-import AttractionEdit from '@/pages/attractions/edit';
-import AttractionQuickAdd from '@/pages/attractions/quickAdd';
-import AttractionQuickList from '@/pages/attractions/quickList';
-import Images from '@/pages/images';
-import Banners from '@/pages/banners';
-import AIImageTemplates from '@/pages/aiImageTemplates';
-import AIImagePackages from '@/pages/aiImagePackages';
-import AIImageQuotas from '@/pages/aiImageQuotas';
-import AIImageChannels from '@/pages/aiImageChannels';
-import AIImageReferences from '@/pages/aiImageReferences';
-import Hotels from '@/pages/hotels';
-import Orders from '@/pages/orders';
-import Feedback from '@/pages/feedback';
-import UserSpots from '@/pages/userSpots';
-import Users from '@/pages/users';
-import Settings from '@/pages/settings';
+
+const Login = lazy(() => import('@/pages/login'));
+const Dashboard = lazy(() => import('@/pages/dashboard'));
+const AttractionsList = lazy(() => import('@/pages/attractions'));
+const AttractionEdit = lazy(() => import('@/pages/attractions/edit'));
+const AttractionQuickAdd = lazy(() => import('@/pages/attractions/quickAdd'));
+const AttractionQuickList = lazy(() => import('@/pages/attractions/quickList'));
+const Images = lazy(() => import('@/pages/images'));
+const Banners = lazy(() => import('@/pages/banners'));
+const AIImageTemplates = lazy(() => import('@/pages/aiImageTemplates'));
+const AIImagePackages = lazy(() => import('@/pages/aiImagePackages'));
+const AIImageQuotas = lazy(() => import('@/pages/aiImageQuotas'));
+const AIImageChannels = lazy(() => import('@/pages/aiImageChannels'));
+const AIImageReferences = lazy(() => import('@/pages/aiImageReferences'));
+const Hotels = lazy(() => import('@/pages/hotels'));
+const Orders = lazy(() => import('@/pages/orders'));
+const Feedback = lazy(() => import('@/pages/feedback'));
+const UserSpots = lazy(() => import('@/pages/userSpots'));
+const Users = lazy(() => import('@/pages/users'));
+const Settings = lazy(() => import('@/pages/settings'));
+
+const page = (element: ReactNode) => (
+  <Suspense
+    fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 240 }}>
+        <Spin />
+      </div>
+    }
+  >
+    {element}
+  </Suspense>
+);
 
 const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Login />,
+    element: page(<Login />),
   },
   {
     path: '/',
@@ -40,79 +55,79 @@ const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <Dashboard />,
+        element: page(<Dashboard />),
       },
       {
         path: 'attractions',
-        element: <AttractionsList />,
+        element: page(<AttractionsList />),
       },
       {
         path: 'attractions/create',
-        element: <AttractionEdit />,
+        element: page(<AttractionEdit />),
       },
       {
         path: 'attractions/quickAdd',
-        element: <AttractionQuickAdd />,
+        element: page(<AttractionQuickAdd />),
       },
       {
         path: 'attractions/quickList',
-        element: <AttractionQuickList />,
+        element: page(<AttractionQuickList />),
       },
       {
         path: 'attractions/edit/:id',
-        element: <AttractionEdit />,
+        element: page(<AttractionEdit />),
       },
       {
         path: 'images',
-        element: <Images />,
+        element: page(<Images />),
       },
       {
         path: 'banners',
-        element: <Banners />,
+        element: page(<Banners />),
       },
       {
         path: 'ai-image-templates',
-        element: <AIImageTemplates />,
+        element: page(<AIImageTemplates />),
       },
       {
         path: 'ai-image-packages',
-        element: <AIImagePackages />,
+        element: page(<AIImagePackages />),
       },
       {
         path: 'ai-image-quotas',
-        element: <AIImageQuotas />,
+        element: page(<AIImageQuotas />),
       },
       {
         path: 'ai-image-channels',
-        element: <AIImageChannels />,
+        element: page(<AIImageChannels />),
       },
       {
         path: 'ai-image-references',
-        element: <AIImageReferences />,
+        element: page(<AIImageReferences />),
       },
       {
         path: 'hotels',
-        element: <Hotels />,
+        element: page(<Hotels />),
       },
       {
         path: 'orders',
-        element: <Orders />,
+        element: page(<Orders />),
       },
       {
         path: 'feedback',
-        element: <Feedback />,
+        element: page(<Feedback />),
       },
       {
         path: 'userSpots',
-        element: <UserSpots />,
+        element: page(<UserSpots />),
       },
       {
         path: 'users',
-        element: <Users />,
+        element: page(<Users />),
       },
       {
         path: 'settings',
-        element: <Settings />,
+        element: page(<Settings />),
       },
     ],
   },
