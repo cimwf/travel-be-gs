@@ -1,0 +1,77 @@
+.container {
+  padding: 24px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.muted {
+  max-width: 150px;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--gray-500);
+  font-family: monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cover {
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.detail {
+  padding-top: 4px;
+}
+
+.content {
+  min-height: 40px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sectionTitle {
+  margin: 22px 0 10px;
+  color: var(--gray-800);
+  font-weight: 600;
+}
+
+.imageGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.detailImage {
+  width: 100% !important;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.reviewInfo {
+  margin-top: 12px;
+  color: var(--gray-500);
+  font-size: 12px;
+
+  span {
+    margin-left: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .container {
+    padding: 16px;
+  }
+
+  .imageGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

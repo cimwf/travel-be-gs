@@ -20,6 +20,7 @@ const AIImageReferences = lazy(() => import('@/pages/aiImageReferences'));
 const Hotels = lazy(() => import('@/pages/hotels'));
 const Orders = lazy(() => import('@/pages/orders'));
 const Feedback = lazy(() => import('@/pages/feedback'));
+const CommunityReviews = lazy(() => import('@/pages/communityReviews'));
 const UserSpots = lazy(() => import('@/pages/userSpots'));
 const Users = lazy(() => import('@/pages/users'));
 const Settings = lazy(() => import('@/pages/settings'));
@@ -116,6 +117,10 @@ const router = createBrowserRouter([
       {
         path: 'feedback',
         element: page(<Feedback />),
+      },
+      {
+        path: 'community-reviews',
+        element: page(<CommunityReviews />),
       },
       {
         path: 'userSpots',

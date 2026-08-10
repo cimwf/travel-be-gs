@@ -19,6 +19,7 @@ import {
   DatabaseOutlined,
   ApiOutlined,
   FolderOpenOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
 import styles from './MainLayout.module.scss';
@@ -37,6 +38,7 @@ const menuItems = [
   { key: '/hotels', icon: <HomeOutlined />, label: '酒店管理' },
   { key: '/orders', icon: <ShoppingCartOutlined />, label: '订单管理' },
   { key: '/feedback', icon: <MessageOutlined />, label: '用户反馈' },
+  { key: '/community-reviews', icon: <SafetyCertificateOutlined />, label: '社区内容审核' },
   { key: '/users', icon: <UserOutlined />, label: '用户管理' },
   { key: '/userSpots', icon: <EnvironmentOutlined />, label: '用户上传' },
   { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
@@ -85,6 +87,7 @@ const MainLayout: React.FC = () => {
       hotels: '酒店管理',
       orders: '订单管理',
       feedback: '用户反馈',
+      'community-reviews': '社区内容审核',
       users: '用户管理',
       userSpots: '用户上传',
       settings: '系统设置',
