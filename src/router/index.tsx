@@ -12,13 +12,7 @@ const AttractionQuickAdd = lazy(() => import('@/pages/attractions/quickAdd'));
 const AttractionQuickList = lazy(() => import('@/pages/attractions/quickList'));
 const Images = lazy(() => import('@/pages/images'));
 const Banners = lazy(() => import('@/pages/banners'));
-const AIImageTemplates = lazy(() => import('@/pages/aiImageTemplates'));
-const AIImagePackages = lazy(() => import('@/pages/aiImagePackages'));
-const AIImageQuotas = lazy(() => import('@/pages/aiImageQuotas'));
-const AIImageChannels = lazy(() => import('@/pages/aiImageChannels'));
-const AIImageReferences = lazy(() => import('@/pages/aiImageReferences'));
 const Hotels = lazy(() => import('@/pages/hotels'));
-const Orders = lazy(() => import('@/pages/orders'));
 const Feedback = lazy(() => import('@/pages/feedback'));
 const CommunityReviews = lazy(() => import('@/pages/communityReviews'));
 const UserSpots = lazy(() => import('@/pages/userSpots'));
@@ -87,32 +81,8 @@ const router = createBrowserRouter([
         element: page(<Banners />),
       },
       {
-        path: 'ai-image-templates',
-        element: page(<AIImageTemplates />),
-      },
-      {
-        path: 'ai-image-packages',
-        element: page(<AIImagePackages />),
-      },
-      {
-        path: 'ai-image-quotas',
-        element: page(<AIImageQuotas />),
-      },
-      {
-        path: 'ai-image-channels',
-        element: page(<AIImageChannels />),
-      },
-      {
-        path: 'ai-image-references',
-        element: page(<AIImageReferences />),
-      },
-      {
         path: 'hotels',
         element: page(<Hotels />),
-      },
-      {
-        path: 'orders',
-        element: page(<Orders />),
       },
       {
         path: 'feedback',
