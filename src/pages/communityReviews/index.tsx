@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Avatar, Button, Card, Descriptions, Empty, Image, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Alert, Avatar, Button, Card, Descriptions, Empty, Image, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
 import { useCommunityReviewStore, type CommunityReviewPost } from '@/stores/communityReviews';
 import styles from './index.module.scss';
@@ -12,18 +12,21 @@ const reviewStatusOptions = [
 ];
 
 const machineSuggestOptions = [
-  { value: 'all', label: '全部风险结论' },
+  { value: 'all', label: '全部机器结论' },
+  { value: 'pass', label: 'Pass（已通过）' },
   { value: 'review', label: 'Review（待复核）' },
   { value: 'risky', label: 'Risky（高风险）' },
 ];
 
 const reviewMeta = {
+  not_required: { color: 'success', text: '自动通过' },
   pending: { color: 'processing', text: '待处理' },
   approved: { color: 'success', text: '已通过' },
   rejected: { color: 'error', text: '未通过' },
 } as const;
 
 const machineMeta = {
+  pass: { color: 'success', text: 'Pass' },
   review: { color: 'warning', text: 'Review' },
   risky: { color: 'error', text: 'Risky' },
 } as const;
@@ -37,19 +40,21 @@ function imageUrl(image: CommunityReviewPost['images'][number]) {
 }
 
 const CommunityReviews: React.FC = () => {
-  const { posts, total, loading, fetchList, review } = useCommunityReviewStore();
-  const reviewerName = useAuthStore((state) => state.user?.nickname || state.user?.username || '管理员');
+  const { posts, total, loading, error, fetchList, review } = useCommunityReviewStore();
+  const adminUser = useAuthStore((state) => state.user);
+  const adminId = adminUser?.id || '';
+  const reviewerName = adminUser?.nickname || adminUser?.username || '管理员';
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [reviewStatus, setReviewStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
-  const [machineSuggest, setMachineSuggest] = useState<'all' | 'review' | 'risky'>('all');
+  const [machineSuggest, setMachineSuggest] = useState<'all' | 'pass' | 'review' | 'risky'>('all');
   const [current, setCurrent] = useState<CommunityReviewPost | null>(null);
   const [remark, setRemark] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(
-    () => fetchList({ page, pageSize, reviewStatus, machineSuggest }),
-    [fetchList, machineSuggest, page, pageSize, reviewStatus],
+    () => fetchList({ adminId, page, pageSize, reviewStatus, machineSuggest }),
+    [adminId, fetchList, machineSuggest, page, pageSize, reviewStatus],
   );
 
   useEffect(() => {
@@ -60,7 +65,7 @@ const CommunityReviews: React.FC = () => {
     if (!current) return;
     setSubmitting(true);
     try {
-      const result = await review(current, decision, remark, reviewerName);
+      const result = await review(adminId, current, decision, remark, reviewerName);
       if (!result.success) {
         message.error(result.message);
         return;
@@ -68,7 +73,11 @@ const CommunityReviews: React.FC = () => {
       message.success(result.message);
       setCurrent(null);
       setRemark('');
-      await loadData();
+      if (posts.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        await loadData();
+      }
     } finally {
       setSubmitting(false);
     }
@@ -81,7 +90,7 @@ const CommunityReviews: React.FC = () => {
       width: 180,
       render: (_: unknown, record: CommunityReviewPost) => (
         <Space>
-          <Avatar src={record.authorAvatar}>{(record.authorName || '旅').slice(0, 1)}</Avatar>
+          <Avatar src={record.authorAvatar || undefined} icon={!record.authorAvatar ? <UserOutlined /> : undefined} />
           <div>
             <div>{record.authorName || '旅行者'}</div>
             <div className={styles.muted}>{record.authorId || '-'}</div>
@@ -99,10 +108,19 @@ const CommunityReviews: React.FC = () => {
     {
       title: '图片',
       key: 'images',
-      width: 90,
+      width: 220,
       render: (_: unknown, record: CommunityReviewPost) => {
-        const url = record.images?.[0] ? imageUrl(record.images[0]) : '';
-        return url ? <Image src={url} width={64} height={64} className={styles.cover} /> : '-';
+        const urls = (record.images || []).map(imageUrl).filter(Boolean);
+        if (urls.length === 0) return '-';
+        return (
+          <Image.PreviewGroup>
+            <Space size={6} wrap>
+              {urls.map((url, index) => (
+                <Image key={`${record._id}-${index}`} src={url} width={52} height={52} className={styles.cover} />
+              ))}
+            </Space>
+          </Image.PreviewGroup>
+        );
       },
     },
     {
@@ -110,7 +128,7 @@ const CommunityReviews: React.FC = () => {
       dataIndex: 'machineSuggest',
       key: 'machineSuggest',
       width: 110,
-      render: (value: 'review' | 'risky') => {
+      render: (value: 'pass' | 'review' | 'risky') => {
         const meta = machineMeta[value];
         return meta ? <Tag color={meta.color}>{meta.text}</Tag> : '-';
       },
@@ -120,7 +138,7 @@ const CommunityReviews: React.FC = () => {
       dataIndex: 'adminReviewStatus',
       key: 'adminReviewStatus',
       width: 100,
-      render: (value: 'pending' | 'approved' | 'rejected') => {
+      render: (value: 'not_required' | 'pending' | 'approved' | 'rejected') => {
         const meta = reviewMeta[value] || reviewMeta.pending;
         return <Tag color={meta.color}>{meta.text}</Tag>;
       },
@@ -149,7 +167,7 @@ const CommunityReviews: React.FC = () => {
     <div className={styles.container}>
       <div className="page-header">
         <h1 className="page-title">社区内容审核</h1>
-        <p className="page-subtitle">处理微信机器审核标记为 Review 或 Risky 的社区作品</p>
+        <p className="page-subtitle">复核待处理、高风险及已经发布的社区作品</p>
       </div>
 
       <Card>
@@ -160,13 +178,14 @@ const CommunityReviews: React.FC = () => {
           </Space>
           <Button icon={<ReloadOutlined />} onClick={loadData}>刷新</Button>
         </div>
+        {error ? <Alert type="error" showIcon message="审核数据加载失败" description={error} style={{ marginBottom: 16 }} /> : null}
         <Table
           columns={columns}
           dataSource={posts}
           rowKey="_id"
           loading={loading}
-          scroll={{ x: 1050 }}
-          locale={{ emptyText: <Empty description="当前没有需要处理的作品" /> }}
+          scroll={{ x: 1180 }}
+          locale={{ emptyText: <Empty description={reviewStatus === 'pending' ? '当前没有待处理作品' : '当前筛选条件下没有作品'} /> }}
           pagination={{
             current: page,
             pageSize,
@@ -184,14 +203,18 @@ const CommunityReviews: React.FC = () => {
         open={!!current}
         width={760}
         onCancel={() => { if (!submitting) { setCurrent(null); setRemark(''); } }}
-        footer={current?.adminReviewStatus === 'pending' ? [
-          <Popconfirm key="reject" title="确认该作品审核不通过？" onConfirm={() => submitReview('rejected')} okText="确认" cancelText="取消">
-            <Button danger icon={<CloseCircleOutlined />} loading={submitting}>不通过</Button>
-          </Popconfirm>,
-          <Popconfirm key="approve" title="确认该作品审核通过并公开展示？" onConfirm={() => submitReview('approved')} okText="确认" cancelText="取消">
-            <Button type="primary" icon={<CheckCircleOutlined />} loading={submitting}>审核通过</Button>
-          </Popconfirm>,
-        ] : null}
+        footer={current ? [
+          current.reviewStatus !== 'rejected' ? (
+            <Popconfirm key="reject" title="确认该作品审核不通过？作品将不再公开展示" onConfirm={() => submitReview('rejected')} okText="确认" cancelText="取消">
+              <Button danger icon={<CloseCircleOutlined />} loading={submitting}>不通过</Button>
+            </Popconfirm>
+          ) : null,
+          current.reviewStatus !== 'approved' ? (
+            <Popconfirm key="approve" title="确认该作品审核通过并公开展示？" onConfirm={() => submitReview('approved')} okText="确认" cancelText="取消">
+              <Button type="primary" icon={<CheckCircleOutlined />} loading={submitting}>审核通过</Button>
+            </Popconfirm>
+          ) : null,
+        ].filter(Boolean) : null}
       >
         {current && (
           <div className={styles.detail}>
@@ -213,7 +236,6 @@ const CommunityReviews: React.FC = () => {
             <div className={styles.sectionTitle}>审核备注</div>
             <Input.TextArea
               value={remark}
-              disabled={current.adminReviewStatus !== 'pending'}
               maxLength={200}
               showCount
               rows={3}
