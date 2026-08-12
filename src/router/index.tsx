@@ -16,6 +16,7 @@ const Hotels = lazy(() => import('@/pages/hotels'));
 const Feedback = lazy(() => import('@/pages/feedback'));
 const CommunityReviews = lazy(() => import('@/pages/communityReviews'));
 const TripReviews = lazy(() => import('@/pages/tripReviews'));
+const TripLogReviews = lazy(() => import('@/pages/tripLogReviews'));
 const UserSpots = lazy(() => import('@/pages/userSpots'));
 const Users = lazy(() => import('@/pages/users'));
 const Settings = lazy(() => import('@/pages/settings'));
@@ -96,6 +97,10 @@ const router = createBrowserRouter([
       {
         path: 'trip-reviews',
         element: page(<TripReviews />),
+      },
+      {
+        path: 'trip-log-reviews',
+        element: page(<TripLogReviews />),
       },
       {
         path: 'userSpots',

@@ -1,0 +1,10 @@
+.container { display: flex; flex-direction: column; gap: 20px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.muted { color: #8c8c8c; font-size: 12px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+.cover { object-fit: cover; border-radius: 6px; }
+.detail { display: flex; flex-direction: column; gap: 18px; }
+.content { white-space: pre-wrap; word-break: break-word; }
+.sectionTitle { font-size: 15px; font-weight: 600; margin-top: 2px; }
+.imageGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.detailImage { width: 100% !important; height: 150px !important; object-fit: cover; border-radius: 8px; }
+.reviewInfo { display: flex; justify-content: space-between; color: #8c8c8c; font-size: 13px; }
