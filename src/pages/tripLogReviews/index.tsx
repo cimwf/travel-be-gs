@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Avatar, Button, Card, Descriptions, Empty, Image, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
+import { useLocation } from 'react-router-dom';
 import { useTripLogReviewStore, type TripLogReviewItem } from '@/stores/tripLogReviews';
+import { useReportStore } from '@/stores/reports';
 import styles from './index.module.scss';
 
 const statusOptions = [
@@ -32,7 +34,9 @@ const imageUrl = (item: TripLogReviewItem['images'] extends Array<infer T> | und
   typeof item === 'string' ? item : (item?.url || '');
 
 const TripLogReviews: React.FC = () => {
+  const location = useLocation();
   const { logs, total, loading, error, fetchList, review } = useTripLogReviewStore();
+  const updateReport = useReportStore(state => state.update);
   const user = useAuthStore(state => state.user);
   const adminId = user?.id || '';
   const reviewerName = user?.nickname || user?.username || '管理员';
@@ -43,9 +47,20 @@ const TripLogReviews: React.FC = () => {
   const [current, setCurrent] = useState<TripLogReviewItem | null>(null);
   const [remark, setRemark] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [sourceReportId, setSourceReportId] = useState('');
   const loadData = useCallback(() => fetchList({ adminId, page, pageSize, reviewStatus, machineSuggest }),
     [adminId, fetchList, machineSuggest, page, pageSize, reviewStatus]);
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    const routeState = location.state as { reportedTarget?: TripLogReviewItem; sourceReportId?: string } | null;
+    const reportedTarget = routeState?.reportedTarget;
+    if (reportedTarget?._id) {
+      setCurrent(reportedTarget);
+      setRemark(reportedTarget.adminReviewRemark || '');
+      setSourceReportId(routeState?.sourceReportId || '');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const submit = async (decision: 'approved' | 'rejected') => {
     if (!current) return;
@@ -54,6 +69,10 @@ const TripLogReviews: React.FC = () => {
       const result = await review({ adminId, logId: current._id, decision, remark, reviewerName });
       if (!result.success) return void message.error(result.message);
       message.success(result.message);
+      if (sourceReportId) {
+        await updateReport({ adminId, reportId: sourceReportId, status: 'processed', remark: '已进入旅行记录审核处理', reviewerName });
+        setSourceReportId('');
+      }
       setCurrent(null); setRemark('');
       if (logs.length === 1 && page > 1) setPage(page - 1); else await loadData();
     } finally { setSubmitting(false); }

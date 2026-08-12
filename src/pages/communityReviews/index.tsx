@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Avatar, Button, Card, Descriptions, Empty, Image, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
+import { useLocation } from 'react-router-dom';
 import { useCommunityReviewStore, type CommunityReviewPost } from '@/stores/communityReviews';
+import { useReportStore } from '@/stores/reports';
 import styles from './index.module.scss';
 
 const reviewStatusOptions = [
@@ -40,7 +42,9 @@ function imageUrl(image: CommunityReviewPost['images'][number]) {
 }
 
 const CommunityReviews: React.FC = () => {
+  const location = useLocation();
   const { posts, total, loading, error, fetchList, review } = useCommunityReviewStore();
+  const updateReport = useReportStore(state => state.update);
   const adminUser = useAuthStore((state) => state.user);
   const adminId = adminUser?.id || '';
   const reviewerName = adminUser?.nickname || adminUser?.username || '管理员';
@@ -51,6 +55,7 @@ const CommunityReviews: React.FC = () => {
   const [current, setCurrent] = useState<CommunityReviewPost | null>(null);
   const [remark, setRemark] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [sourceReportId, setSourceReportId] = useState('');
 
   const loadData = useCallback(
     () => fetchList({ adminId, page, pageSize, reviewStatus, machineSuggest }),
@@ -60,6 +65,17 @@ const CommunityReviews: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const routeState = location.state as { reportedTarget?: CommunityReviewPost; sourceReportId?: string } | null;
+    const reportedTarget = routeState?.reportedTarget;
+    if (reportedTarget?._id) {
+      setCurrent(reportedTarget);
+      setRemark(reportedTarget.adminReviewRemark || '');
+      setSourceReportId(routeState?.sourceReportId || '');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const submitReview = async (decision: 'approved' | 'rejected') => {
     if (!current) return;
@@ -71,6 +87,10 @@ const CommunityReviews: React.FC = () => {
         return;
       }
       message.success(result.message);
+      if (sourceReportId) {
+        await updateReport({ adminId, reportId: sourceReportId, status: 'processed', remark: '已进入社区内容审核处理', reviewerName });
+        setSourceReportId('');
+      }
       setCurrent(null);
       setRemark('');
       if (posts.length === 1 && page > 1) {

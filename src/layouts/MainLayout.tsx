@@ -14,6 +14,7 @@ import {
   PictureOutlined,
   AppstoreOutlined,
   SafetyCertificateOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
 import styles from './MainLayout.module.scss';
@@ -29,6 +30,7 @@ const menuItems = [
   { key: '/community-reviews', icon: <SafetyCertificateOutlined />, label: '社区内容审核' },
   { key: '/trip-reviews', icon: <SafetyCertificateOutlined />, label: '行程内容审核' },
   { key: '/trip-log-reviews', icon: <SafetyCertificateOutlined />, label: '旅行记录审核' },
+  { key: '/reports', icon: <WarningOutlined />, label: '举报管理' },
   { key: '/users', icon: <UserOutlined />, label: '用户管理' },
   { key: '/userSpots', icon: <EnvironmentOutlined />, label: '用户上传' },
   { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
@@ -74,6 +76,7 @@ const MainLayout: React.FC = () => {
       'community-reviews': '社区内容审核',
       'trip-reviews': '行程内容审核',
       'trip-log-reviews': '旅行记录审核',
+      reports: '举报管理',
       users: '用户管理',
       userSpots: '用户上传',
       settings: '系统设置',
