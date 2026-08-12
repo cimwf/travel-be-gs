@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { getDb, initCloudBase } from '@/utils/cloudbase';
-import app from '@/utils/cloudbase';
+import { adminBatchCreate, adminCreate, adminDelete, adminList, adminUpdate } from '@/utils/adminApi';
 
 export interface QuickAttraction {
   _id?: string;
@@ -27,10 +26,7 @@ interface QuickAttractionsState {
   delete: (id: string) => Promise<{ success: boolean; message: string }>;
 }
 
-const COLLECTION = 'quick_attractions';
-const PLACES_COLLECTION = 'places';
-
-export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get) => ({
+export const useQuickAttractionsStore = create<QuickAttractionsState>((set) => ({
   attractions: [],
   loading: false,
   total: 0,
@@ -39,55 +35,10 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      const whereCond: Record<string, unknown> = {};
-      if (keyword) {
-        whereCond.name = db.RegExp({
-          regexp: keyword,
-          options: 'i',
-        });
-      }
-
-      // 获取总数
-      const countResult = await db.collection(COLLECTION).where(whereCond).count();
-      const total = countResult.total;
-
-      // 分页查询
-      const result = await db
-        .collection(COLLECTION)
-        .where(whereCond)
-        .orderBy('createdAt', 'desc')
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .get();
-
-      const list = (result.data || []) as QuickAttraction[];
-
-      // 转换 cloud:// 链接为临时访问链接
-      const cloudUrls = list
-        .filter(item => item.coverImage?.startsWith('cloud://'))
-        .map(item => item.coverImage);
-
-      if (cloudUrls.length > 0) {
-        try {
-          const urlResult = await app.getTempFileURL({ fileList: cloudUrls });
-          if (urlResult.fileList) {
-            const urlMap: Record<string, string> = {};
-            urlResult.fileList.forEach((item: { fileID: string; tempFileURL: string }) => {
-              urlMap[item.fileID] = item.tempFileURL;
-            });
-            list.forEach(item => {
-              if (item.coverImage && urlMap[item.coverImage]) {
-                item.coverImage = urlMap[item.coverImage];
-              }
-            });
-          }
-        } catch (error) {
-          console.error('Convert cloud URL error:', error);
-        }
-      }
+      const result = await adminList<QuickAttraction>('quickAttractions', { page, pageSize, keyword, cloudFields: ['coverImage'] });
+      if (!result.success) throw new Error(result.error);
+      const total = result.total || 0;
+      const list = result.items || [];
 
       set({
         attractions: list,
@@ -105,15 +56,13 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
 
   create: async (data) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
       const newAttraction = {
         ...data,
         createdAt: Date.now(),
       };
 
-      await db.collection(COLLECTION).add(newAttraction);
+      const result = await adminCreate('quickAttractions', newAttraction);
+      if (!result.success) throw new Error(result.error);
 
       return { success: true, message: '添加成功' };
     } catch (error) {
@@ -124,9 +73,6 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
 
   batchCreate: async (items) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
       const validItems = items.filter(item => item.name);
 
       if (validItems.length === 0) {
@@ -141,10 +87,8 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
         createdAt: now,
       }));
 
-      // 批量插入
-      for (const data of dataToInsert) {
-        await db.collection(COLLECTION).add(data);
-      }
+      const result = await adminBatchCreate('quickAttractions', dataToInsert);
+      if (!result.success) throw new Error(result.error);
 
       return { success: true, message: `成功添加 ${dataToInsert.length} 条景点` };
     } catch (error) {
@@ -155,10 +99,8 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
 
   delete: async (id: string) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).remove();
+      const result = await adminDelete('quickAttractions', id);
+      if (!result.success) throw new Error(result.error);
 
       return { success: true, message: '删除成功' };
     } catch (error) {
@@ -169,10 +111,8 @@ export const useQuickAttractionsStore = create<QuickAttractionsState>((set, get)
 
   update: async (id: string, data) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).update(data);
+      const result = await adminUpdate('quickAttractions', id, data as Record<string, unknown>);
+      if (!result.success) throw new Error(result.error);
 
       return { success: true, message: '修改成功' };
     } catch (error) {

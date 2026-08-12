@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import md5 from 'md5';
-import { getDb, initCloudBase } from '@/utils/cloudbase';
+import { callCloudFunction } from '@/utils/cloudbase';
 import type { AdminUser } from '@/types';
 
 interface AuthState {
@@ -38,38 +37,9 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true });
 
         try {
-          // 初始化云开发（匿名登录）
-          const inited = await initCloudBase();
-          if (!inited) {
-            set({ loading: false });
-            return { success: false, message: '云开发初始化失败' };
-          }
-
-          // 密码 MD5 加密
-          const passwordHash = md5(password);
-
-          // 从云数据库查询用户
-          const db = getDb();
-          const result = await db
-            .collection('admin_users')
-            .where({
-              username: username,
-              password: passwordHash,
-            })
-            .get();
-
-          if (result.data && result.data.length > 0) {
-            const userData = result.data[0];
-
-            // 更新最后登录时间
-            await db
-              .collection('admin_users')
-              .doc(userData._id)
-              .update({
-                lastLoginAt: Date.now(),
-              });
-
-            const user = createAdminUser(userData);
+          const result = await callCloudFunction<{ success: boolean; user?: Record<string, unknown>; error?: string }>('admin/login', { username, password });
+          if (result.success && result.user) {
+            const user = createAdminUser({ ...result.user, _id: result.user.id });
 
             set({
               user,
@@ -82,7 +52,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           set({ loading: false });
-          return { success: false, message: '用户名或密码错误' };
+          return { success: false, message: result.error || '用户名或密码错误' };
         } catch (error) {
           console.error('Login error:', error);
           set({ loading: false });
@@ -94,44 +64,9 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true });
 
         try {
-          // 初始化云开发（匿名登录）
-          const inited = await initCloudBase();
-          if (!inited) {
-            set({ loading: false });
-            return { success: false, message: '云开发初始化失败' };
-          }
-
-          const db = getDb();
-
-          // 检查用户名是否已存在
-          const checkResult = await db
-            .collection('admin_users')
-            .where({
-              username: username,
-            })
-            .get();
-
-          if (checkResult.data && checkResult.data.length > 0) {
-            set({ loading: false });
-            return { success: false, message: '用户名已存在' };
-          }
-
-          // 密码 MD5 加密
-          const passwordHash = md5(password);
-
-          // 创建用户
-          await db.collection('admin_users').add({
-            username,
-            password: passwordHash,
-            nickname: nickname || username,
-            role: 'admin',
-            permissions: ['*'],
-            createdAt: Date.now(),
-            lastLoginAt: Date.now(),
-          });
-
+          const result = await callCloudFunction<{ success: boolean; error?: string }>('admin/register', { username, password, nickname });
           set({ loading: false });
-          return { success: true, message: '注册成功，请登录' };
+          return { success: result.success, message: result.success ? '注册成功，请登录' : (result.error || '注册失败') };
         } catch (error) {
           console.error('Register error:', error);
           set({ loading: false });

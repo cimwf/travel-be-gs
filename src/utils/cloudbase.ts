@@ -41,30 +41,6 @@ export const initCloudBase = async () => {
   }
 };
 
-// 测试数据库连接
-export const testDatabase = async () => {
-  try {
-    await initCloudBase();
-    const db = getDb();
-
-    console.log('测试访问 places 集合...');
-    const placesResult = await db.collection('places').limit(1).get();
-    console.log('places 集合访问成功:', placesResult);
-
-    console.log('测试访问 images 集合...');
-    const imagesResult = await db.collection('beImages').limit(1).get();
-    console.log('beImages 集合访问成功:', imagesResult);
-
-    return { success: true };
-  } catch (error) {
-    console.error('数据库测试失败:', error);
-    return { success: false, error };
-  }
-};
-
-// 获取数据库引用
-export const getDb = () => app.database();
-
 export const callCloudFunction = async <T = Record<string, unknown>>(
   action: string,
   data: Record<string, unknown> = {}

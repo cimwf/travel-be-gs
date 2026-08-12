@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { getDb, initCloudBase, uploadFile, deleteCloudFile } from '@/utils/cloudbase';
+import { uploadFile, deleteCloudFile } from '@/utils/cloudbase';
+import { adminBatchCreate, adminCreate, adminDelete, adminList, adminUpdate } from '@/utils/adminApi';
 
 export interface ImageItem {
   _id: string;
@@ -37,9 +38,6 @@ interface ImagesState {
   deleteImage: (id: string, fileID?: string) => Promise<{ success: boolean; message: string }>;
 }
 
-const COLLECTION_IMAGES = 'beImages';
-const COLLECTION_FOLDERS = 'beImage_folder';
-
 export const useImagesStore = create<ImagesState>((set, get) => ({
   images: [],
   folders: [],
@@ -48,15 +46,9 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
   // 获取所有文件夹
   fetchFolders: async () => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      const result = await db
-        .collection(COLLECTION_FOLDERS)
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      set({ folders: (result.data || []) as ImageFolder[] });
+      const result = await adminList<ImageFolder>('imageFolders', { page: 1, pageSize: 1000 });
+      if (!result.success) throw new Error(result.error);
+      set({ folders: result.items || [] });
     } catch (error) {
       console.error('Fetch folders error:', error);
     }
@@ -65,14 +57,12 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
   // 创建文件夹
   createFolder: async (name: string, parentId = '') => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION_FOLDERS).add({
+      const result = await adminCreate('imageFolders', {
         name,
         parentId,
         createdAt: Date.now(),
       });
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchFolders();
@@ -87,12 +77,8 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
   // 重命名文件夹
   renameFolder: async (id: string, name: string) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION_FOLDERS).doc(id).update({
-        name,
-      });
+      const result = await adminUpdate('imageFolders', id, { name });
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchFolders();
@@ -107,20 +93,8 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
   // 删除文件夹
   deleteFolder: async (id: string) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      // 检查文件夹下是否有图片
-      const imagesResult = await db
-        .collection(COLLECTION_IMAGES)
-        .where({ folderId: id })
-        .count();
-
-      if (imagesResult.total > 0) {
-        return { success: false, message: '文件夹下有图片，请先删除图片' };
-      }
-
-      await db.collection(COLLECTION_FOLDERS).doc(id).remove();
+      const result = await adminDelete('imageFolders', id);
+      if (!result.success) return { success: false, message: result.error || '删除失败' };
 
       // 刷新列表
       get().fetchFolders();
@@ -135,15 +109,9 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
   // 获取所有图片（不分文件夹）
   fetchAllImages: async () => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      const result = await db
-        .collection(COLLECTION_IMAGES)
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      return (result.data || []) as ImageItem[];
+      const result = await adminList<ImageItem>('images', { page: 1, pageSize: 2000 });
+      if (!result.success) throw new Error(result.error);
+      return result.items || [];
     } catch (error) {
       console.error('Fetch all images error:', error);
       return [];
@@ -155,22 +123,11 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      const whereCond: Record<string, unknown> = {};
-      if (folderId) {
-        whereCond.folderId = folderId;
-      }
-
-      const result = await db
-        .collection(COLLECTION_IMAGES)
-        .where(whereCond)
-        .orderBy('createdAt', 'desc')
-        .get();
+      const result = await adminList<ImageItem>('images', { page: 1, pageSize: 2000, filters: { folderId } });
+      if (!result.success) throw new Error(result.error);
 
       set({
-        images: (result.data || []) as ImageItem[],
+        images: result.items || [],
         loading: false,
       });
     } catch (error) {
@@ -189,10 +146,6 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
         return { success: false, message: uploadResult.message };
       }
 
-      // 保存图片信息到数据库
-      await initCloudBase();
-      const db = getDb();
-
       const imageData = {
         name: file.name,
         url: uploadResult.url,
@@ -201,7 +154,8 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
         createdAt: Date.now(),
       };
 
-      await db.collection(COLLECTION_IMAGES).add(imageData);
+      const result = await adminCreate('images', imageData);
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchImages(folderId || undefined);
@@ -220,20 +174,18 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
   // 导入单张图片（通过 URL）
   importImage: async (url: string, name = '', folderId = '') => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
       // 从 URL 提取文件名
       const urlName = url.split('/').pop() || '';
       const finalName = name || urlName.split('?')[0] || `image-${Date.now()}`;
 
-      await db.collection(COLLECTION_IMAGES).add({
+      const result = await adminCreate('images', {
         name: finalName,
         url,
         fileID: url,
         folderId,
         createdAt: Date.now(),
       });
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchImages(folderId || undefined);
@@ -250,26 +202,20 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
     let success = 0;
     let failed = 0;
 
-    await initCloudBase();
-    const db = getDb();
-
-    for (const url of urls) {
-      try {
+    const items = urls.map((url) => {
         const urlName = url.split('/').pop() || '';
         const name = urlName.split('?')[0] || `image-${Date.now()}`;
-
-        await db.collection(COLLECTION_IMAGES).add({
+        return {
           name,
           url,
           fileID: url,
           folderId,
           createdAt: Date.now(),
-        });
-        success++;
-      } catch {
-        failed++;
-      }
-    }
+        };
+    });
+    const result = await adminBatchCreate('images', items);
+    success = result.success ? (result.count || 0) : 0;
+    failed = urls.length - success;
 
     // 刷新列表
     get().fetchImages(folderId || undefined);
@@ -285,10 +231,8 @@ export const useImagesStore = create<ImagesState>((set, get) => ({
         await deleteCloudFile(fileID);
       }
 
-      // 再删除数据库记录
-      await initCloudBase();
-      const db = getDb();
-      await db.collection(COLLECTION_IMAGES).doc(id).remove();
+      const result = await adminDelete('images', id);
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchImages();

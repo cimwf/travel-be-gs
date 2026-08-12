@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getDb, initCloudBase } from '@/utils/cloudbase';
+import { adminCreate, adminDelete, adminList, adminUpdate } from '@/utils/adminApi';
 
 export interface BannerItem {
   _id: string;
@@ -26,8 +26,6 @@ interface BannerState {
   toggleEnabled: (id: string, enabled: boolean) => Promise<{ success: boolean; message: string }>;
 }
 
-const COLLECTION = 'banners';
-
 export const useBannerStore = create<BannerState>((set, get) => ({
   banners: [],
   loading: false,
@@ -37,25 +35,12 @@ export const useBannerStore = create<BannerState>((set, get) => ({
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      // 获取总数
-      const countResult = await db.collection(COLLECTION).count();
-      const total = countResult.total;
-
-      // 分页查询，按排序权重升序
-      const result = await db
-        .collection(COLLECTION)
-        .orderBy('sort', 'asc')
-        .orderBy('createdAt', 'desc')
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .get();
+      const result = await adminList<BannerItem>('banners', { page, pageSize });
+      if (!result.success) throw new Error(result.error);
 
       set({
-        banners: (result.data || []) as BannerItem[],
-        total,
+        banners: result.items || [],
+        total: result.total || 0,
         loading: false,
       });
     } catch (error) {
@@ -66,19 +51,17 @@ export const useBannerStore = create<BannerState>((set, get) => ({
 
   create: async (data) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
       // 获取当前最大排序值
-      const result = await db.collection(COLLECTION).orderBy('sort', 'desc').limit(1).get();
-      const maxSort = result.data && result.data.length > 0 ? result.data[0].sort : 0;
+      const listResult = await adminList<BannerItem>('banners', { page: 1, pageSize: 1, orderBy: [['sort', 'desc']] });
+      const maxSort = listResult.items?.[0]?.sort || 0;
 
-      await db.collection(COLLECTION).add({
+      const result = await adminCreate('banners', {
         ...data,
         sort: data.sort ?? maxSort + 1,
         enabled: data.enabled ?? true,
         createdAt: Date.now(),
       });
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchList({ page: 1, pageSize: 10 });
@@ -92,10 +75,8 @@ export const useBannerStore = create<BannerState>((set, get) => ({
 
   update: async (id, data) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).update(data);
+      const result = await adminUpdate('banners', id, data as Record<string, unknown>);
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       const currentPage = Math.ceil(get().banners.length / 10) || 1;
@@ -110,10 +91,8 @@ export const useBannerStore = create<BannerState>((set, get) => ({
 
   delete: async (id) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).remove();
+      const result = await adminDelete('banners', id);
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchList({ page: 1, pageSize: 10 });
@@ -127,10 +106,8 @@ export const useBannerStore = create<BannerState>((set, get) => ({
 
   updateSort: async (id, sort) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).update({ sort });
+      const result = await adminUpdate('banners', id, { sort });
+      if (!result.success) throw new Error(result.error);
 
       // 刷新列表
       get().fetchList({ page: 1, pageSize: 10 });
@@ -144,10 +121,8 @@ export const useBannerStore = create<BannerState>((set, get) => ({
 
   toggleEnabled: async (id, enabled) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).update({ enabled });
+      const result = await adminUpdate('banners', id, { enabled });
+      if (!result.success) throw new Error(result.error);
 
       // 更新本地状态
       set({

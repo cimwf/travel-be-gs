@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getDb, initCloudBase } from '@/utils/cloudbase';
+import { adminList } from '@/utils/adminApi';
 
 export interface ViewStatItem {
   _id: string;
@@ -43,7 +43,11 @@ interface ViewStatsState {
   fetchTopPlaces: (limit?: number) => Promise<void>;
 }
 
-const COLLECTION = 'place_view_stats';
+const loadViewStats = async () => {
+  const result = await adminList<ViewStatItem>('viewStats', { page: 1, pageSize: 2000 });
+  if (!result.success) throw new Error(result.error);
+  return result.items || [];
+};
 
 // 获取日期范围
 const getDateRange = (days: number) => {
@@ -85,20 +89,8 @@ export const useViewStatsStore = create<ViewStatsState>((set) => ({
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      const today = new Date().toISOString().split('T')[0];
-      const dates = getDateRange(days);
-
-      // 获取所有数据（简化查询）
-      const result = await db
-        .collection(COLLECTION)
-        .orderBy('date', 'desc')
-        .limit(1000)
-        .get();
-
-      const list = (result.data || []) as ViewStatItem[];
+      void days;
+      const list = await loadViewStats();
 
       // 计算总浏览量
       let totalViews = 0;
@@ -148,22 +140,10 @@ export const useViewStatsStore = create<ViewStatsState>((set) => ({
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
-
       if (type === 'daily') {
         const dates = getDateRange(days);
-
-        // 获取最近N天的数据
         const startDate = dates[0];
-        const result = await db
-          .collection(COLLECTION)
-          .where({
-            date: db.command.gte(startDate as unknown as number),
-          })
-          .get();
-
-        const list = (result.data || []) as ViewStatItem[];
+        const list = (await loadViewStats()).filter((item) => item.date >= startDate);
 
         // 按日期聚合
         const dateMap: Record<string, number> = {};
@@ -190,14 +170,7 @@ export const useViewStatsStore = create<ViewStatsState>((set) => ({
         for (let i = 7; i >= 0; i--) {
           const { start, end } = getWeekRange(i);
 
-          const result = await db
-            .collection(COLLECTION)
-            .where({
-              date: db.command.gte(start as unknown as number).and(db.command.lte(end as unknown as number)),
-            })
-            .get();
-
-          const list = (result.data || []) as ViewStatItem[];
+          const list = (await loadViewStats()).filter((item) => item.date >= start && item.date <= end);
           const weekCount = list.reduce((sum, item) => sum + (item.count || 0), 0);
 
           weeklyData.push({
@@ -218,22 +191,12 @@ export const useViewStatsStore = create<ViewStatsState>((set) => ({
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
-
       // 获取最近30天的数据
       const monthAgo = new Date();
       monthAgo.setDate(monthAgo.getDate() - 30);
       const startDate = monthAgo.toISOString().split('T')[0];
 
-      const result = await db
-        .collection(COLLECTION)
-        .where({
-          date: db.command.gte(startDate as unknown as number),
-        })
-        .get();
-
-      const list = (result.data || []) as ViewStatItem[];
+      const list = (await loadViewStats()).filter((item) => item.date >= startDate);
 
       // 按地点聚合
       const placeMap: Record<string, { placeName: string; count: number }> = {};

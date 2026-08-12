@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { getDb, initCloudBase } from '@/utils/cloudbase';
-import app from '@/utils/cloudbase';
+import { adminCall, adminDelete, adminList, adminUpdate } from '@/utils/adminApi';
 
 export interface UserSpot {
   _id?: string;
@@ -28,9 +27,6 @@ interface UserSpotsState {
   moveToQuickAttractions: (id: string, spot?: UserSpot) => Promise<{ success: boolean; message: string }>;
 }
 
-const COLLECTION = 'user_spots';
-const QUICK_COLLECTION = 'quick_attractions';
-
 export const useUserSpotsStore = create<UserSpotsState>((set) => ({
   spots: [],
   loading: false,
@@ -40,53 +36,10 @@ export const useUserSpotsStore = create<UserSpotsState>((set) => ({
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      const whereCond: Record<string, unknown> = {};
-      if (keyword) {
-        whereCond.placeName = db.RegExp({
-          regexp: keyword,
-          options: 'i',
-        });
-      }
-
-      const countResult = await db.collection(COLLECTION).where(whereCond).count();
-      const total = countResult.total;
-
-      const result = await db
-        .collection(COLLECTION)
-        .where(whereCond)
-        .orderBy('createdAt', 'desc')
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .get();
-
-      const list = (result.data || []) as UserSpot[];
-
-      // 转换 cloud:// 链接为临时访问链接
-      const cloudUrls = list
-        .filter(item => item.coverImage?.startsWith('cloud://'))
-        .map(item => item.coverImage);
-
-      if (cloudUrls.length > 0) {
-        try {
-          const urlResult = await app.getTempFileURL({ fileList: cloudUrls });
-          if (urlResult.fileList) {
-            const urlMap: Record<string, string> = {};
-            urlResult.fileList.forEach((item: { fileID: string; tempFileURL: string }) => {
-              urlMap[item.fileID] = item.tempFileURL;
-            });
-            list.forEach(item => {
-              if (item.coverImage && urlMap[item.coverImage]) {
-                item.coverImage = urlMap[item.coverImage];
-              }
-            });
-          }
-        } catch (error) {
-          console.error('Convert cloud URL error:', error);
-        }
-      }
+      const result = await adminList<UserSpot>('userSpots', { page, pageSize, keyword, cloudFields: ['coverImage'] });
+      if (!result.success) throw new Error(result.error);
+      const list = result.items || [];
+      const total = result.total || 0;
 
       set({ spots: list, total, loading: false });
 
@@ -100,10 +53,8 @@ export const useUserSpotsStore = create<UserSpotsState>((set) => ({
 
   approve: async (id: string) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).update({ status: 'approved' });
+      const result = await adminUpdate('userSpots', id, { status: 'approved' });
+      if (!result.success) throw new Error(result.error);
 
       return { success: true, message: '已审核通过' };
     } catch (error) {
@@ -114,10 +65,8 @@ export const useUserSpotsStore = create<UserSpotsState>((set) => ({
 
   delete: async (id: string) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      await db.collection(COLLECTION).doc(id).remove();
+      const result = await adminDelete('userSpots', id);
+      if (!result.success) throw new Error(result.error);
 
       return { success: true, message: '删除成功' };
     } catch (error) {
@@ -126,32 +75,10 @@ export const useUserSpotsStore = create<UserSpotsState>((set) => ({
     }
   },
 
-  moveToQuickAttractions: async (id: string, existingSpot?: UserSpot) => {
+  moveToQuickAttractions: async (id: string) => {
     try {
-      await initCloudBase();
-      const db = getDb();
-
-      let spot: UserSpot | undefined = existingSpot;
-
-      if (!spot) {
-        const result = await db.collection(COLLECTION).doc(id).get();
-        spot = result.data as unknown as UserSpot;
-      }
-
-      if (!spot || !spot.placeName) {
-        return { success: false, message: '景点数据异常，请重试' };
-      }
-
-      // 添加到 quick_attractions
-      await db.collection(QUICK_COLLECTION).add({
-        name: spot.placeName,
-        location: spot.location || '',
-        coverImage: spot.coverImage || '',
-        createdAt: Date.now(),
-      });
-
-      // 标记为已审核
-      await db.collection(COLLECTION).doc(id).update({ status: 'approved' });
+      const result = await adminCall('admin/spotPublish', { id });
+      if (!result.success) throw new Error(result.error);
 
       return { success: true, message: '已上线' };
     } catch (error) {

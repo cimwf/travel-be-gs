@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getDb, initCloudBase } from '@/utils/cloudbase';
+import { adminList } from '@/utils/adminApi';
 
 type UserStatType = 'tripListVisit' | 'loginSuccess';
 
@@ -27,8 +27,6 @@ interface UserStatsState {
   loading: boolean;
   fetchStats: () => Promise<void>;
 }
-
-const COLLECTION = 'user_stats';
 
 const getToday = () => {
   const today = new Date();
@@ -58,16 +56,10 @@ export const useUserStatsStore = create<UserStatsState>((set) => ({
     set({ loading: true });
 
     try {
-      await initCloudBase();
-      const db = getDb();
       const today = getToday();
-
-      const result = await db
-        .collection(COLLECTION)
-        .limit(2000)
-        .get();
-
-      const todayData = ((result.data || []) as UserStatItem[])
+      const result = await adminList<UserStatItem>('userStats', { page: 1, pageSize: 2000 });
+      if (!result.success) throw new Error(result.error);
+      const todayData = (result.items || [])
         .filter((item) => item.date === today)
         .filter((item) => item.type === 'tripListVisit' || item.type === 'loginSuccess');
 
