@@ -1,3 +1,15 @@
-.container { min-width: 0; }
+.container {
+  width: 100%;
+  min-width: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
 .muted { max-width: 220px; overflow: hidden; color: #8c8c8c; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .cover { border-radius: 6px; object-fit: cover; }
+
+@media (max-width: 900px) {
+  .container {
+    padding: 16px;
+  }
+}
