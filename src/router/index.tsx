@@ -15,6 +15,7 @@ const Banners = lazy(() => import('@/pages/banners'));
 const Hotels = lazy(() => import('@/pages/hotels'));
 const Feedback = lazy(() => import('@/pages/feedback'));
 const CommunityReviews = lazy(() => import('@/pages/communityReviews'));
+const OfficialCommunity = lazy(() => import('@/pages/officialCommunity'));
 const TripReviews = lazy(() => import('@/pages/tripReviews'));
 const TripLogReviews = lazy(() => import('@/pages/tripLogReviews'));
 const Reports = lazy(() => import('@/pages/reports'));
@@ -94,6 +95,10 @@ const router = createBrowserRouter([
       {
         path: 'community-reviews',
         element: page(<CommunityReviews />),
+      },
+      {
+        path: 'official-community',
+        element: page(<OfficialCommunity />),
       },
       {
         path: 'trip-reviews',

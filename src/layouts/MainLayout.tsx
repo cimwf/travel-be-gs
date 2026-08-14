@@ -15,6 +15,7 @@ import {
   AppstoreOutlined,
   SafetyCertificateOutlined,
   WarningOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/auth';
 import styles from './MainLayout.module.scss';
@@ -28,6 +29,7 @@ const menuItems = [
   { key: '/hotels', icon: <HomeOutlined />, label: '酒店管理' },
   { key: '/feedback', icon: <MessageOutlined />, label: '用户反馈' },
   { key: '/community-reviews', icon: <SafetyCertificateOutlined />, label: '社区内容审核' },
+  { key: '/official-community', icon: <TeamOutlined />, label: '社区运营' },
   { key: '/trip-reviews', icon: <SafetyCertificateOutlined />, label: '行程内容审核' },
   { key: '/trip-log-reviews', icon: <SafetyCertificateOutlined />, label: '旅行记录审核' },
   { key: '/reports', icon: <WarningOutlined />, label: '举报管理' },
@@ -74,6 +76,7 @@ const MainLayout: React.FC = () => {
       hotels: '酒店管理',
       feedback: '用户反馈',
       'community-reviews': '社区内容审核',
+      'official-community': '社区运营',
       'trip-reviews': '行程内容审核',
       'trip-log-reviews': '旅行记录审核',
       reports: '举报管理',
