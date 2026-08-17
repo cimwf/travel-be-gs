@@ -58,6 +58,7 @@ export default function OfficialCommunity() {
   const [total, setTotal] = useState(0);
   const [avatarFiles, setAvatarFiles] = useState<UploadFile[]>([]);
   const [postFiles, setPostFiles] = useState<OfficialPostUploadFile[]>([]);
+  const [publishingPostId, setPublishingPostId] = useState('');
   const [accountForm] = Form.useForm();
   const [postForm] = Form.useForm();
 
@@ -104,7 +105,6 @@ export default function OfficialCommunity() {
       postForm.setFieldsValue({
         accountId: post.authorId,
         content: post.content,
-        dataEnv: post.dataEnv,
       });
       setPostFiles((post.images || []).map((image, index) => {
         const url = imageUrl(image);
@@ -189,6 +189,25 @@ export default function OfficialCommunity() {
     await loadPosts();
   };
 
+  const publishPost = async (post: OfficialPost) => {
+    if (publishingPostId) return;
+    setPublishingPostId(post._id);
+    try {
+      const result = await callCloudFunction<{ success: boolean; error?: string; message?: string }>('admin/officialPostUpdate', {
+        adminId,
+        postId: post._id,
+        mode: 'publish',
+      });
+      if (!result.success) return message.error(result.error || '发布失败');
+      message.success(result.message || '已发布到生产环境');
+      await loadPosts();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '发布失败');
+    } finally {
+      setPublishingPostId('');
+    }
+  };
+
   const accountColumns = [
     { title: '账号', key: 'account', render: (_: unknown, item: OfficialAccount) => <Space><Avatar src={item.avatar || undefined} icon={!item.avatar ? <UserOutlined /> : undefined} /><div><div>{item.nickname} <Tag color="blue">官方</Tag></div><div className={styles.muted}>{item._id}</div></div></Space> },
     { title: '地区', dataIndex: 'region', render: (value: string) => value || '未设置' },
@@ -202,17 +221,17 @@ export default function OfficialCommunity() {
     { title: '发布账号', key: 'author', width: 180, render: (_: unknown, item: OfficialPost) => <Space><Avatar src={item.authorAvatar || undefined} />{item.authorName}</Space> },
     { title: '正文', dataIndex: 'content', ellipsis: true, render: (value: string) => value || <span className={styles.muted}>纯图片动态</span> },
     { title: '图片', key: 'images', width: 220, render: (_: unknown, item: OfficialPost) => <Image.PreviewGroup><Space size={6}>{(item.images || []).slice(0, 3).map((image, index) => <Image key={index} src={imageUrl(image)} width={48} height={48} className={styles.cover} />)}{item.images?.length > 3 && <Tag>+{item.images.length - 3}</Tag>}</Space></Image.PreviewGroup> },
-    { title: '环境', dataIndex: 'dataEnv', width: 90, render: (value: string) => <Tag color={value === 'prod' ? 'success' : 'processing'}>{value === 'prod' ? '生产' : '开发'}</Tag> },
-    { title: '状态', dataIndex: 'status', width: 90, render: (value: string) => <Tag color={value === 'active' ? 'success' : 'default'}>{value === 'active' ? '展示中' : '已删除'}</Tag> },
+    { title: '环境', dataIndex: 'dataEnv', width: 90, render: (value: string) => <Tag color={value === 'prod' ? 'success' : 'processing'}>{value === 'prod' ? '生产' : '测试'}</Tag> },
+    { title: '状态', dataIndex: 'status', width: 90, render: (value: string, item: OfficialPost) => <Tag color={value === 'active' ? 'success' : 'default'}>{value === 'active' ? (item.dataEnv === 'prod' ? '展示中' : '测试中') : '已删除'}</Tag> },
     { title: '发布时间', dataIndex: 'createdAt', width: 180, render: formatTime },
-    { title: '操作', key: 'action', width: 180, render: (_: unknown, item: OfficialPost) => <Space size={0}><Button type="link" icon={<EditOutlined />} onClick={() => openPost(item)}>编辑</Button>{item.status === 'active' ? <Popconfirm title="确认删除这条官方动态？" onConfirm={() => updatePostStatus(item, 'deleted')}><Button type="link" danger icon={<StopOutlined />}>删除</Button></Popconfirm> : <Button type="link" onClick={() => updatePostStatus(item, 'active')}>恢复</Button>}</Space> },
+    { title: '操作', key: 'action', width: 240, render: (_: unknown, item: OfficialPost) => <Space size={0}>{item.status === 'active' && item.dataEnv === 'dev' ? <Popconfirm title="确认发布到生产环境？" description="发布时间将更新为当前时间，线上用户会立即看到。" onConfirm={() => publishPost(item)}><Button type="link" icon={<SendOutlined />} loading={publishingPostId === item._id}>发布</Button></Popconfirm> : null}<Button type="link" icon={<EditOutlined />} onClick={() => openPost(item)}>编辑</Button>{item.status === 'active' ? <Popconfirm title="确认删除这条官方动态？" onConfirm={() => updatePostStatus(item, 'deleted')}><Button type="link" danger icon={<StopOutlined />}>删除</Button></Popconfirm> : <Button type="link" onClick={() => updatePostStatus(item, 'active')}>恢复</Button>}</Space> },
   ];
 
   return <div className={styles.container}>
     <div className="page-header"><h1 className="page-title">社区运营</h1><p className="page-subtitle">管理公开标识的官方账号，并以官方身份发布社区内容</p></div>
     <Tabs items={[
       { key: 'accounts', label: '官方账号', children: <Card extra={<Space><Button icon={<ReloadOutlined />} onClick={loadAccounts}>刷新</Button><Button type="primary" icon={<PlusOutlined />} onClick={() => openAccount()}>新建官方账号</Button></Space>}><Table rowKey="_id" loading={loadingAccounts} columns={accountColumns} dataSource={accounts} pagination={false} locale={{ emptyText: <Empty description="还没有官方账号" /> }} /></Card> },
-      { key: 'posts', label: '官方动态', children: <Card extra={<Space><Button icon={<ReloadOutlined />} onClick={loadPosts}>刷新</Button><Button type="primary" icon={<SendOutlined />} disabled={!accounts.some((item) => item.status === 'active')} onClick={() => openPost()}>发布官方动态</Button></Space>}><Table rowKey="_id" loading={loadingPosts} columns={postColumns} dataSource={posts} scroll={{ x: 1130 }} pagination={{ current: page, pageSize: 10, total, onChange: setPage, showTotal: (value) => `共 ${value} 条` }} locale={{ emptyText: <Empty description="还没有官方动态" /> }} /></Card> },
+      { key: 'posts', label: '官方动态', children: <Card extra={<Space><Button icon={<ReloadOutlined />} onClick={loadPosts}>刷新</Button><Button type="primary" icon={<PlusOutlined />} disabled={!accounts.some((item) => item.status === 'active')} onClick={() => openPost()}>准备官方动态</Button></Space>}><Table rowKey="_id" loading={loadingPosts} columns={postColumns} dataSource={posts} scroll={{ x: 1190 }} pagination={{ current: page, pageSize: 10, total, onChange: setPage, showTotal: (value) => `共 ${value} 条` }} locale={{ emptyText: <Empty description="还没有官方动态" /> }} /></Card> },
     ]} />
 
     <Modal title={editing ? '编辑官方账号' : '新建官方账号'} open={accountModal} confirmLoading={saving} onOk={saveAccount} onCancel={() => setAccountModal(false)} okText="保存">
@@ -225,12 +244,12 @@ export default function OfficialCommunity() {
       </Form>
     </Modal>
 
-    <Modal title={editingPost ? '编辑官方动态' : '发布官方动态'} width={680} open={postModal} confirmLoading={saving} onOk={savePost} onCancel={() => { setPostModal(false); setEditingPost(null); }} okText={editingPost ? '保存修改' : '发布'}>
+    <Modal title={editingPost ? '编辑官方动态' : '准备官方动态'} width={680} open={postModal} confirmLoading={saving} onOk={savePost} onCancel={() => { setPostModal(false); setEditingPost(null); }} okText={editingPost ? '保存修改' : '保存到测试环境'}>
       <Form form={postForm} layout="vertical" preserve={false}>
         <Form.Item name="accountId" label="发布账号" rules={[{ required: true, message: '请选择官方账号' }]}><Select placeholder="选择一个启用的官方账号" options={accounts.filter((item) => item.status === 'active').map((item) => ({ value: item._id, label: item.nickname }))} /></Form.Item>
         <Form.Item name="content" label="正文"><Input.TextArea rows={6} maxLength={300} showCount placeholder="分享北京周边玩法、活动信息或生活动态" /></Form.Item>
         <Form.Item label="图片（最多 9 张）"><Upload accept="image/jpeg,image/png,image/webp" listType="picture-card" multiple maxCount={9} fileList={postFiles} beforeUpload={() => false} onChange={({ fileList }) => setPostFiles(fileList as OfficialPostUploadFile[])}>{postFiles.length < 9 ? <><PlusOutlined /><div>添加图片</div></> : null}</Upload></Form.Item>
-        <Form.Item name="dataEnv" label="发布环境" extra="必须手动选择；生产内容会展示给线上用户" rules={[{ required: true, message: '请选择发布环境' }]}><Select placeholder="请选择开发环境或生产环境" options={[{ value: 'dev', label: '开发环境（仅开发版可见）' }, { value: 'prod', label: '生产环境（线上用户可见）' }]} /></Form.Item>
+        {!editingPost ? <div className={styles.muted}>保存后仅在测试环境展示，确认内容无误后可在列表中发布到生产环境。</div> : null}
       </Form>
     </Modal>
   </div>;
