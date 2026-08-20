@@ -1,3 +1,26 @@
 .container {
   padding: 24px;
 }
+
+.settingsContent {
+  width: 100%;
+  max-width: 760px;
+}
+
+.settingCard {
+  width: 100%;
+}
+
+.settingAlert {
+  margin-bottom: 20px;
+}
+
+.envSelect {
+  width: 240px;
+}
+
+.settingHelp {
+  margin-top: 10px;
+  color: #8c8c8c;
+  line-height: 1.6;
+}

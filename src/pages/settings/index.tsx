@@ -1,8 +1,58 @@
-import React from 'react';
-import { Card, Tabs, Form, Input, Button, Switch, Select, Divider, Table } from 'antd';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Button, Card, Form, Input, message, Select, Space, Switch, Table, Tabs, Tag } from 'antd';
+import { adminCall } from '@/utils/adminApi';
 import styles from './index.module.scss';
 
+type DataEnv = 'dev' | 'test' | 'prod';
+type TripVisibilityConfig = Record<DataEnv, boolean>;
+
+const DEFAULT_VISIBILITY: TripVisibilityConfig = { dev: false, test: false, prod: false };
+const ENV_OPTIONS = [
+  { value: 'dev', label: '开发环境（dev）' },
+  { value: 'test', label: '体验环境（test）' },
+  { value: 'prod', label: '生产环境（prod）' },
+];
+
 const Settings: React.FC = () => {
+  const [dataEnv, setDataEnv] = useState<DataEnv>('dev');
+  const [tripVisibility, setTripVisibility] = useState<TripVisibilityConfig>(DEFAULT_VISIBILITY);
+  const [visibilityLoading, setVisibilityLoading] = useState(true);
+  const [visibilitySaving, setVisibilitySaving] = useState(false);
+
+  const loadTripVisibility = useCallback(async () => {
+    setVisibilityLoading(true);
+    try {
+      const result = await adminCall<{ config?: Partial<TripVisibilityConfig> }>('admin/tripListVisibilityGet');
+      if (!result.success) throw new Error(result.error || '读取失败');
+      setTripVisibility({ ...DEFAULT_VISIBILITY, ...(result.config || {}) });
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '读取行程展示设置失败');
+    } finally {
+      setVisibilityLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTripVisibility();
+  }, [loadTripVisibility]);
+
+  const updateTripVisibility = async (enabled: boolean) => {
+    setVisibilitySaving(true);
+    try {
+      const result = await adminCall<{ config?: Partial<TripVisibilityConfig> }>('admin/tripListVisibilityUpdate', {
+        dataEnv,
+        enabled,
+      });
+      if (!result.success) throw new Error(result.error || '保存失败');
+      setTripVisibility({ ...DEFAULT_VISIBILITY, ...(result.config || {}), [dataEnv]: enabled });
+      message.success(enabled ? '已开启往期行程展示' : '已关闭往期行程展示');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '保存行程展示设置失败');
+    } finally {
+      setVisibilitySaving(false);
+    }
+  };
+
   const roleColumns = [
     { title: '角色名称', dataIndex: 'name', key: 'name' },
     { title: '描述', dataIndex: 'description', key: 'description' },
@@ -28,20 +78,60 @@ const Settings: React.FC = () => {
       key: 'basic',
       label: '基本设置',
       children: (
-        <Form layout="vertical" style={{ maxWidth: 600 }}>
-          <Form.Item label="系统名称">
-            <Input defaultValue="北京旅行后台管理系统" />
-          </Form.Item>
-          <Form.Item label="系统Logo">
-            <Input defaultValue="🏔️" />
-          </Form.Item>
-          <Form.Item label="开启注册">
-            <Switch defaultChecked />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary">保存设置</Button>
-          </Form.Item>
-        </Form>
+        <Space direction="vertical" size={24} className={styles.settingsContent}>
+          <Card title="行程列表运营设置" className={styles.settingCard}>
+            <Alert
+              type="info"
+              showIcon
+              message="此设置按业务数据环境独立生效"
+              description="关闭时，公共行程列表只返回今天及以后的行程；开启后，当前行程展示完毕后继续展示往期行程。我的行程和个人主页不受影响。"
+              className={styles.settingAlert}
+            />
+            <Form layout="vertical">
+              <Form.Item label="配置环境">
+                <Select<DataEnv>
+                  value={dataEnv}
+                  options={ENV_OPTIONS}
+                  onChange={setDataEnv}
+                  className={styles.envSelect}
+                />
+              </Form.Item>
+              <Form.Item label="公开列表展示往期行程">
+                <Space size={12}>
+                  <Switch
+                    checked={tripVisibility[dataEnv]}
+                    loading={visibilityLoading || visibilitySaving}
+                    disabled={visibilityLoading || visibilitySaving}
+                    onChange={updateTripVisibility}
+                  />
+                  <Tag color={tripVisibility[dataEnv] ? 'green' : 'default'}>
+                    {tripVisibility[dataEnv] ? '已开启' : '已关闭'}
+                  </Tag>
+                </Space>
+                <div className={styles.settingHelp}>
+                  往期行程统一显示“已结束”，仍可查看、评论和分享，但不能申请加入。
+                </div>
+              </Form.Item>
+            </Form>
+          </Card>
+
+          <Card title="基础信息" className={styles.settingCard}>
+            <Form layout="vertical" style={{ maxWidth: 600 }}>
+              <Form.Item label="系统名称">
+                <Input defaultValue="北京旅行后台管理系统" />
+              </Form.Item>
+              <Form.Item label="系统Logo">
+                <Input defaultValue="🏔️" />
+              </Form.Item>
+              <Form.Item label="开启注册">
+                <Switch defaultChecked />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary">保存设置</Button>
+              </Form.Item>
+            </Form>
+          </Card>
+        </Space>
       ),
     },
     {
